@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { StudyProvider, useStudy } from './context/StudyContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar, NavRoute } from './components/Sidebar';
@@ -23,6 +24,8 @@ import { ProfileSettingsView } from './components/ProfileSettingsView';
 import { OnboardingModal } from './components/OnboardingModal';
 import { CommandBarModal } from './components/CommandBarModal';
 import { FocusRoomModal } from './components/FocusRoomModal';
+import { AuthModal } from './components/AuthModal';
+import { SubjectManagerModal } from './components/SubjectManagerModal';
 
 function MainLayout() {
   const {
@@ -30,13 +33,16 @@ function MainLayout() {
     isFocusModeOpen,
     setIsFocusModeOpen,
     isCommandBarOpen,
-    setIsCommandBarOpen
+    setIsCommandBarOpen,
+    isSubjectModalOpen,
+    setIsSubjectModalOpen
   } = useStudy();
+  const { isAuthenticated, user, setIsAuthModalOpen } = useAuth();
 
   const [currentRoute, setCurrentRoute] = useState<NavRoute>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(!profile.onboarded);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Pre-fill state passed across views (e.g. from Dashboard or Radar to Tutor or Quiz)
   const [prefillData, setPrefillData] = useState<{ topic?: string; subject?: string }>({
@@ -159,10 +165,14 @@ function MainLayout() {
       </div>
 
       {/* Global AI Modals */}
-      <OnboardingModal
-        isOpen={isOnboardingOpen}
-        onClose={() => setIsOnboardingOpen(false)}
+      <OnboardingModal />
+
+      <SubjectManagerModal
+        isOpen={isSubjectModalOpen}
+        onClose={() => setIsSubjectModalOpen(false)}
       />
+
+      <AuthModal />
 
       <CommandBarModal
         isOpen={isCommandBarOpen}
@@ -180,8 +190,10 @@ function MainLayout() {
 
 export default function App() {
   return (
-    <StudyProvider>
-      <MainLayout />
-    </StudyProvider>
+    <AuthProvider>
+      <StudyProvider>
+        <MainLayout />
+      </StudyProvider>
+    </AuthProvider>
   );
 }

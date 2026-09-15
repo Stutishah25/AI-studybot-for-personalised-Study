@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   StudentProfile,
   Subject,
@@ -19,31 +19,38 @@ import {
   initialRevisionRadar,
   initialExamPlan
 } from '../demoData';
+import { useAuth } from './AuthContext';
 
 interface StudyContextType {
   profile: StudentProfile;
-  updateProfile: (updates: Partial<StudentProfile>) => void;
+  updateProfile: (updates: Partial<StudentProfile>) => Promise<void>;
   subjects: Subject[];
   currentSubjectId: string;
   setCurrentSubjectId: (id: string) => void;
   currentSubject: Subject | undefined;
+  addSubject: (subject: Partial<Subject>) => Promise<void>;
+  updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
+  deleteSubject: (id: string) => Promise<void>;
+  parseSyllabus: (syllabusText: string, subjectName?: string) => Promise<any[]>;
   studyPlan: StudyPlanItem[];
   toggleStudyPlanItem: (id: string) => void;
   addStudyPlanItem: (item: Omit<StudyPlanItem, 'id' | 'completed'>) => void;
   notes: NoteItem[];
-  addNote: (note: Omit<NoteItem, 'id' | 'createdAt'>) => void;
-  updateNote: (id: string, updates: Partial<NoteItem>) => void;
-  deleteNote: (id: string) => void;
+  addNote: (note: Omit<NoteItem, 'id' | 'createdAt'>) => Promise<void>;
+  updateNote: (id: string, updates: Partial<NoteItem>) => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
   mindMaps: Record<string, MindMapNode>;
   currentMindMap: MindMapNode;
   setCurrentMindMap: (map: MindMapNode) => void;
-  saveMindMap: (topic: string, map: MindMapNode) => void;
+  saveMindMap: (topic: string, map: MindMapNode) => Promise<void>;
   memoryShortcuts: MemoryShortcutItem[];
-  addMemoryShortcut: (shortcut: Omit<MemoryShortcutItem, 'id' | 'createdAt'>) => void;
-  deleteMemoryShortcut: (id: string) => void;
+  addMemoryShortcut: (shortcut: Omit<MemoryShortcutItem, 'id' | 'createdAt'>) => Promise<void>;
+  deleteMemoryShortcut: (id: string) => Promise<void>;
   revisionRadar: RevisionRadarItem[];
-  markTopicReviewed: (id: string) => void;
+  markTopicReviewed: (id: string) => Promise<void>;
   examPlan: ExamCountdown;
+  addExam: (subject: string, date: string, targetGrade?: string) => Promise<void>;
+  deleteExam: (index: number) => Promise<void>;
   updateExamPlan: (plan: ExamCountdown) => void;
   updateTopicStatus: (
     subjectId: string,
@@ -51,6 +58,15 @@ interface StudyContextType {
     status: 'not-started' | 'learning' | 'needs-revision' | 'mastered',
     scoreDelta?: number
   ) => void;
+  recordQuizAttempt: (attempt: {
+    topic: string;
+    subject: string;
+    difficulty: string;
+    score: number;
+    total: number;
+    answers?: any[];
+  }) => Promise<void>;
+  recordStudySession: (durationMinutes: number, topic?: string, soundscape?: string) => Promise<void>;
   streak: number;
   studyHours: number;
   incrementStudyTime: (minutes: number) => void;
@@ -58,116 +74,260 @@ interface StudyContextType {
   setIsFocusModeOpen: (open: boolean) => void;
   isCommandBarOpen: boolean;
   setIsCommandBarOpen: (open: boolean) => void;
+  isSubjectModalOpen: boolean;
+  setIsSubjectModalOpen: (open: boolean) => void;
   resetToDemoData: () => void;
+  isLoadingUserData: boolean;
 }
 
 const StudyContext = createContext<StudyContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'nova_study_companion_state_v1';
-
 export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load initial from localStorage or demoData
-  const [profile, setProfile] = useState<StudentProfile>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_profile`);
-    return saved ? JSON.parse(saved) : initialStudentProfile;
-  });
+  const { user, token, isAuthenticated } = useAuth();
 
-  const [subjects, setSubjects] = useState<Subject[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_subjects`);
-    return saved ? JSON.parse(saved) : initialSubjects;
-  });
-
+  const [profile, setProfile] = useState<StudentProfile>(initialStudentProfile);
+  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects);
   const [currentSubjectId, setCurrentSubjectId] = useState<string>('dsa');
-
-  const [studyPlan, setStudyPlan] = useState<StudyPlanItem[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_plan`);
-    return saved ? JSON.parse(saved) : initialStudyPlan;
-  });
-
-  const [notes, setNotes] = useState<NoteItem[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_notes`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.map((n: any) => ({
-            ...n,
-            type: n.type || n.noteType || 'study-notes',
-            noteType: n.noteType || n.type || 'study-notes',
-            summary: n.summary || (n.content ? n.content.slice(0, 80).replace(/[#*`\n]/g, ' ') : 'Study Note')
-          }));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return initialNotes;
-  });
-
+  const [studyPlan, setStudyPlan] = useState<StudyPlanItem[]>(initialStudyPlan);
+  const [notes, setNotes] = useState<NoteItem[]>(initialNotes);
   const [mindMaps, setMindMaps] = useState<Record<string, MindMapNode>>({
     'Operating System Architecture': initialMindMap
   });
   const [currentMindMap, setCurrentMindMap] = useState<MindMapNode>(initialMindMap);
-
-  const [memoryShortcuts, setMemoryShortcuts] = useState<MemoryShortcutItem[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_shortcuts`);
-    return saved ? JSON.parse(saved) : initialMemoryShortcuts;
-  });
-
-  const [revisionRadar, setRevisionRadar] = useState<RevisionRadarItem[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_radar`);
-    return saved ? JSON.parse(saved) : initialRevisionRadar;
-  });
-
-  const [examPlan, setExamPlan] = useState<ExamCountdown>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_exam`);
-    return saved ? JSON.parse(saved) : initialExamPlan;
-  });
-
-  const [streak, setStreak] = useState<number>(12);
+  const [memoryShortcuts, setMemoryShortcuts] = useState<MemoryShortcutItem[]>(initialMemoryShortcuts);
+  const [revisionRadar, setRevisionRadar] = useState<RevisionRadarItem[]>(initialRevisionRadar);
+  const [examPlan, setExamPlan] = useState<ExamCountdown>(initialExamPlan);
+  const [streak, setStreak] = useState<number>(7);
   const [studyHours, setStudyHours] = useState<number>(18.5);
+
   const [isFocusModeOpen, setIsFocusModeOpen] = useState<boolean>(false);
   const [isCommandBarOpen, setIsCommandBarOpen] = useState<boolean>(false);
+  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState<boolean>(false);
+  const [isLoadingUserData, setIsLoadingUserData] = useState<boolean>(false);
 
-  // Sync to localStorage
+  // Helper for authenticated API calls
+  const authFetch = useCallback(
+    async (url: string, options: RequestInit = {}) => {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+      };
+      return fetch(url, { ...options, headers });
+    },
+    [token]
+  );
+
+  // Load user data whenever authenticated user or token changes
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_profile`, JSON.stringify(profile));
-  }, [profile]);
+    async function loadUserData() {
+      if (!token || !user) {
+        // Fall back to clean default or initial demo
+        return;
+      }
 
-  useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_subjects`, JSON.stringify(subjects));
-  }, [subjects]);
+      setIsLoadingUserData(true);
+      try {
+        // 1. Fetch user profile
+        const profileRes = await authFetch('/api/auth/me');
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.profile) {
+            setProfile(prev => ({
+              ...prev,
+              ...profileData.profile,
+              name: profileData.user?.name || profileData.profile.name || prev.name
+            }));
+            if (profileData.profile.streak !== undefined) setStreak(profileData.profile.streak);
+            if (profileData.profile.studyHours !== undefined) setStudyHours(profileData.profile.studyHours);
+          }
+        }
 
-  useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_plan`, JSON.stringify(studyPlan));
-  }, [studyPlan]);
+        // 2. Fetch subjects
+        const subjectsRes = await authFetch('/api/user/subjects');
+        if (subjectsRes.ok) {
+          const subjData = await subjectsRes.json();
+          if (Array.isArray(subjData.subjects)) {
+            setSubjects(subjData.subjects);
+            if (subjData.subjects.length > 0) {
+              setCurrentSubjectId(subjData.subjects[0].id);
+            }
+          }
+        }
 
-  useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_notes`, JSON.stringify(notes));
-  }, [notes]);
+        // 3. Fetch notes
+        const notesRes = await authFetch('/api/user/notes');
+        if (notesRes.ok) {
+          const notesData = await notesRes.json();
+          if (Array.isArray(notesData.notes)) {
+            setNotes(notesData.notes);
+          }
+        }
 
-  useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_shortcuts`, JSON.stringify(memoryShortcuts));
-  }, [memoryShortcuts]);
+        // 4. Fetch mind maps
+        const mmRes = await authFetch('/api/user/mind-maps');
+        if (mmRes.ok) {
+          const mmData = await mmRes.json();
+          if (mmData.mindMaps && typeof mmData.mindMaps === 'object') {
+            setMindMaps(mmData.mindMaps);
+            const keys = Object.keys(mmData.mindMaps);
+            if (keys.length > 0) {
+              setCurrentMindMap(mmData.mindMaps[keys[0]]);
+            }
+          }
+        }
 
-  useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_radar`, JSON.stringify(revisionRadar));
-  }, [revisionRadar]);
+        // 5. Fetch memory shortcuts
+        const scRes = await authFetch('/api/user/memory-shortcuts');
+        if (scRes.ok) {
+          const scData = await scRes.json();
+          if (Array.isArray(scData.memoryShortcuts)) {
+            setMemoryShortcuts(scData.memoryShortcuts);
+          }
+        }
 
-  useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_exam`, JSON.stringify(examPlan));
-  }, [examPlan]);
+        // 6. Fetch revision radar
+        const radarRes = await authFetch('/api/user/revision-radar');
+        if (radarRes.ok) {
+          const radarData = await radarRes.json();
+          if (Array.isArray(radarData.revisionRadar)) {
+            setRevisionRadar(radarData.revisionRadar);
+          }
+        }
 
-  const updateProfile = (updates: Partial<StudentProfile>) => {
-    setProfile(prev => ({ ...prev, ...updates }));
-  };
+        // 7. Fetch exam plan
+        const examRes = await authFetch('/api/user/exam-plan');
+        if (examRes.ok) {
+          const examData = await examRes.json();
+          if (examData.examPlan) {
+            setExamPlan(examData.examPlan);
+          }
+        }
 
+        // 8. Fetch study plan
+        const planRes = await authFetch('/api/user/study-plan');
+        if (planRes.ok) {
+          const planData = await planRes.json();
+          if (Array.isArray(planData.studyPlan)) {
+            setStudyPlan(planData.studyPlan);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching user data from backend:', err);
+      } finally {
+        setIsLoadingUserData(false);
+      }
+    }
+
+    loadUserData();
+  }, [token, user, authFetch]);
+
+  // Current active subject
   const currentSubject = subjects.find(s => s.id === currentSubjectId) || subjects[0];
 
+  // Update profile
+  const updateProfile = async (updates: Partial<StudentProfile>) => {
+    setProfile(prev => ({ ...prev, ...updates }));
+    if (token) {
+      try {
+        await authFetch('/api/user/profile', {
+          method: 'PUT',
+          body: JSON.stringify(updates)
+        });
+      } catch (err) {
+        console.error('Failed to sync profile updates to backend:', err);
+      }
+    }
+  };
+
+  // Add Subject
+  const addSubject = async (subjectData: Partial<Subject>) => {
+    if (token) {
+      try {
+        const res = await authFetch('/api/user/subjects', {
+          method: 'POST',
+          body: JSON.stringify(subjectData)
+        });
+        const data = await res.json();
+        if (data.success && data.subject) {
+          setSubjects(prev => [...prev, data.subject]);
+          setCurrentSubjectId(data.subject.id);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Local fallback
+    const newSubject: Subject = {
+      id: `subj_${Date.now()}`,
+      name: subjectData.name || 'New Subject',
+      code: subjectData.code || 'CS101',
+      description: subjectData.description || 'Subject description',
+      progress: 0,
+      color: subjectData.color || 'indigo',
+      accentColor: subjectData.accentColor || '#818cf8',
+      units: subjectData.units || []
+    };
+    setSubjects(prev => [...prev, newSubject]);
+    setCurrentSubjectId(newSubject.id);
+  };
+
+  // Update Subject
+  const updateSubject = async (id: string, updates: Partial<Subject>) => {
+    setSubjects(prev => prev.map(s => (s.id === id ? { ...s, ...updates } : s)));
+    if (token) {
+      try {
+        await authFetch(`/api/user/subjects/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(updates)
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  // Delete Subject
+  const deleteSubject = async (id: string) => {
+    setSubjects(prev => prev.filter(s => s.id !== id));
+    if (token) {
+      try {
+        await authFetch(`/api/user/subjects/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  // Parse Syllabus with AI
+  const parseSyllabus = async (syllabusText: string, subjectName?: string) => {
+    try {
+      const res = await authFetch('/api/user/subjects/parse-syllabus', {
+        method: 'POST',
+        body: JSON.stringify({ syllabusText, subjectName })
+      });
+      const data = await res.json();
+      return data.units || [];
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  };
+
+  // Study Plan
   const toggleStudyPlanItem = (id: string) => {
-    setStudyPlan(prev =>
-      prev.map(item => (item.id === id ? { ...item, completed: !item.completed } : item))
-    );
+    setStudyPlan(prev => {
+      const next = prev.map(item => (item.id === id ? { ...item, completed: !item.completed } : item));
+      if (token) {
+        authFetch('/api/user/study-plan', {
+          method: 'PUT',
+          body: JSON.stringify({ studyPlan: next })
+        }).catch(() => {});
+      }
+      return next;
+    });
   };
 
   const addStudyPlanItem = (item: Omit<StudyPlanItem, 'id' | 'completed'>) => {
@@ -176,10 +336,36 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: `sp-${Date.now()}`,
       completed: false
     };
-    setStudyPlan(prev => [newItem, ...prev]);
+    setStudyPlan(prev => {
+      const next = [newItem, ...prev];
+      if (token) {
+        authFetch('/api/user/study-plan', {
+          method: 'PUT',
+          body: JSON.stringify({ studyPlan: next })
+        }).catch(() => {});
+      }
+      return next;
+    });
   };
 
-  const addNote = (note: Omit<NoteItem, 'id' | 'createdAt'>) => {
+  // Notes
+  const addNote = async (note: Omit<NoteItem, 'id' | 'createdAt'>) => {
+    if (token) {
+      try {
+        const res = await authFetch('/api/user/notes', {
+          method: 'POST',
+          body: JSON.stringify(note)
+        });
+        const data = await res.json();
+        if (data.success && data.note) {
+          setNotes(prev => [data.note, ...prev]);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     const newNote: NoteItem = {
       ...note,
       id: `note-${Date.now()}`,
@@ -188,20 +374,65 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNotes(prev => [newNote, ...prev]);
   };
 
-  const updateNote = (id: string, updates: Partial<NoteItem>) => {
+  const updateNote = async (id: string, updates: Partial<NoteItem>) => {
     setNotes(prev => prev.map(n => (n.id === id ? { ...n, ...updates } : n)));
+    if (token) {
+      try {
+        await authFetch(`/api/user/notes/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(updates)
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
-  const deleteNote = (id: string) => {
+  const deleteNote = async (id: string) => {
     setNotes(prev => prev.filter(n => n.id !== id));
+    if (token) {
+      try {
+        await authFetch(`/api/user/notes/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
-  const saveMindMap = (topic: string, map: MindMapNode) => {
+  // Mind Map
+  const saveMindMap = async (topic: string, map: MindMapNode) => {
     setMindMaps(prev => ({ ...prev, [topic]: map }));
     setCurrentMindMap(map);
+    if (token) {
+      try {
+        await authFetch('/api/user/mind-maps', {
+          method: 'POST',
+          body: JSON.stringify({ key: topic, data: map })
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
-  const addMemoryShortcut = (shortcut: Omit<MemoryShortcutItem, 'id' | 'createdAt'>) => {
+  // Memory Shortcuts
+  const addMemoryShortcut = async (shortcut: Omit<MemoryShortcutItem, 'id' | 'createdAt'>) => {
+    if (token) {
+      try {
+        const res = await authFetch('/api/user/memory-shortcuts', {
+          method: 'POST',
+          body: JSON.stringify(shortcut)
+        });
+        const data = await res.json();
+        if (data.success && data.memoryShortcut) {
+          setMemoryShortcuts(prev => [data.memoryShortcut, ...prev]);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     const newShortcut: MemoryShortcutItem = {
       ...shortcut,
       id: `sc-${Date.now()}`,
@@ -210,31 +441,100 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setMemoryShortcuts(prev => [newShortcut, ...prev]);
   };
 
-  const deleteMemoryShortcut = (id: string) => {
+  const deleteMemoryShortcut = async (id: string) => {
     setMemoryShortcuts(prev => prev.filter(s => s.id !== id));
+    if (token) {
+      try {
+        await authFetch(`/api/user/memory-shortcuts/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
-  const markTopicReviewed = (id: string) => {
+  // Spaced Repetition (Revision Radar)
+  const markTopicReviewed = async (id: string) => {
+    const item = revisionRadar.find(r => r.id === id);
     setRevisionRadar(prev =>
-      prev.map(item =>
-        item.id === id
+      prev.map(r =>
+        r.id === id
           ? {
-              ...item,
+              ...r,
               lastReviewedDaysAgo: 0,
               retentionEstimate: 95,
               status: 'recently-reviewed',
               urgency: 'low',
               reason: 'Reviewed just now! Retention curve reset.'
             }
-          : item
+          : r
       )
     );
+
+    if (token && item) {
+      try {
+        await authFetch('/api/user/revision-radar/reviewed', {
+          method: 'POST',
+          body: JSON.stringify({ topic: item.topic })
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  // Exam Management
+  const addExam = async (subject: string, date: string, targetGrade = 'A') => {
+    if (token) {
+      try {
+        const res = await authFetch('/api/user/exams', {
+          method: 'POST',
+          body: JSON.stringify({ subject, date, targetGrade })
+        });
+        const data = await res.json();
+        if (data.success && data.examPlan) {
+          setExamPlan(data.examPlan);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Local fallback calculation
+    const diff = Math.max(1, Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    setExamPlan(prev => ({
+      ...prev,
+      upcomingExams: [...prev.upcomingExams, { subject, date, daysLeft: diff, targetGrade }].sort(
+        (a, b) => a.daysLeft - b.daysLeft
+      )
+    }));
+  };
+
+  const deleteExam = async (index: number) => {
+    if (token) {
+      try {
+        const res = await authFetch(`/api/user/exams/${index}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success && data.examPlan) {
+          setExamPlan(data.examPlan);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    setExamPlan(prev => ({
+      ...prev,
+      upcomingExams: prev.upcomingExams.filter((_, i) => i !== index)
+    }));
   };
 
   const updateExamPlan = (plan: ExamCountdown) => {
     setExamPlan(plan);
   };
 
+  // Update Topic Status & Progress
   const updateTopicStatus = (
     subjectId: string,
     topicId: string,
@@ -258,7 +558,6 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           })
         }));
 
-        // Recalculate subject progress
         const allTopics = updatedUnits.flatMap(u => u.topics);
         const masteredCount = allTopics.filter(t => t.status === 'mastered').length;
         const learningCount = allTopics.filter(t => t.status === 'learning').length;
@@ -271,6 +570,82 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         };
       })
     );
+  };
+
+  // Record Quiz Attempt (Dynamic Weak Topic & Mastery Updater)
+  const recordQuizAttempt = async (attempt: {
+    topic: string;
+    subject: string;
+    difficulty: string;
+    score: number;
+    total: number;
+    answers?: any[];
+  }) => {
+    const accuracy = attempt.total > 0 ? Math.round((attempt.score / attempt.total) * 100) : 0;
+
+    // Locally update topic score in subject
+    setSubjects(prev =>
+      prev.map(subj => {
+        if (!subj.units) return subj;
+        let modified = false;
+        const updatedUnits = subj.units.map(unit => ({
+          ...unit,
+          topics: unit.topics.map(t => {
+            if (t.name.toLowerCase() === attempt.topic.toLowerCase()) {
+              modified = true;
+              return {
+                ...t,
+                quizScore: accuracy,
+                confidenceScore: Math.min(100, Math.round(accuracy * 0.9 + 10)),
+                status: accuracy >= 80 ? 'mastered' : accuracy >= 60 ? 'learning' : 'needs-revision',
+                lastReviewedDaysAgo: 0
+              };
+            }
+            return t;
+          })
+        }));
+
+        if (!modified) return subj;
+        const allTopics = updatedUnits.flatMap(u => u.topics);
+        const mastered = allTopics.filter(t => t.status === 'mastered').length;
+        const learning = allTopics.filter(t => t.status === 'learning').length;
+        const progress = Math.round(((mastered * 1 + learning * 0.5) / (allTopics.length || 1)) * 100);
+        return { ...subj, progress, units: updatedUnits };
+      })
+    );
+
+    if (token) {
+      try {
+        await authFetch('/api/user/quizzes/attempt', {
+          method: 'POST',
+          body: JSON.stringify(attempt)
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  // Focus Sessions & Study Time Tracking
+  const recordStudySession = async (durationMinutes: number, topic?: string, soundscape?: string) => {
+    const hours = Number((durationMinutes / 60).toFixed(1));
+    setStudyHours(prev => Number((prev + hours).toFixed(1)));
+
+    if (token) {
+      try {
+        await authFetch('/api/user/study-sessions', {
+          method: 'POST',
+          body: JSON.stringify({
+            durationMinutes,
+            topic: topic || currentSubject?.name || 'General Study',
+            subject: currentSubject?.name || 'General',
+            soundscape
+          })
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
   const incrementStudyTime = (minutes: number) => {
@@ -289,7 +664,6 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setExamPlan(initialExamPlan);
     setStreak(12);
     setStudyHours(18.5);
-    localStorage.clear();
   };
 
   return (
@@ -301,6 +675,10 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         currentSubjectId,
         setCurrentSubjectId,
         currentSubject,
+        addSubject,
+        updateSubject,
+        deleteSubject,
+        parseSyllabus,
         studyPlan,
         toggleStudyPlanItem,
         addStudyPlanItem,
@@ -318,8 +696,12 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         revisionRadar,
         markTopicReviewed,
         examPlan,
+        addExam,
+        deleteExam,
         updateExamPlan,
         updateTopicStatus,
+        recordQuizAttempt,
+        recordStudySession,
         streak,
         studyHours,
         incrementStudyTime,
@@ -327,7 +709,10 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsFocusModeOpen,
         isCommandBarOpen,
         setIsCommandBarOpen,
-        resetToDemoData
+        isSubjectModalOpen,
+        setIsSubjectModalOpen,
+        resetToDemoData,
+        isLoadingUserData
       }}
     >
       {children}

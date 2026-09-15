@@ -3,6 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import authRouter from './server/routes/auth.js';
+import dataRouter from './server/routes/data.js';
 
 dotenv.config();
 
@@ -13,6 +15,10 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
+
+// Mount Auth and User Data Routers
+app.use('/api/auth', authRouter);
+app.use('/api/user', dataRouter);
 
 // Lazy initialize GoogleGenAI client
 let aiClient: GoogleGenAI | null = null;

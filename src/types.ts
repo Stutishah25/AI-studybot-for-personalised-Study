@@ -237,3 +237,18 @@ export interface TutorResponsePayload {
     explanation: string;
   };
 }
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  isDemo?: boolean;
+  createdAt?: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}

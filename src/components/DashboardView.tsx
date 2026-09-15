@@ -34,7 +34,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     toggleStudyPlanItem, 
     addStudyPlanItem, 
     streak, 
-    studyHours 
+    studyHours,
+    revisionRadar
   } = useStudy();
 
   const [newPlanTime, setNewPlanTime] = useState('14:00');
@@ -52,6 +53,61 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
 
   const completedCount = studyPlan.filter(p => p.completed).length;
   const planProgress = studyPlan.length ? Math.round((completedCount / studyPlan.length) * 100) : 0;
+
+  // Dynamically determine today's focus topic based on user's real topics and weak areas
+  const focusTopic = React.useMemo(() => {
+    // Check revision radar first
+    if (revisionRadar && revisionRadar.length > 0) {
+      const topRadar = revisionRadar[0];
+      return {
+        name: topRadar.topic,
+        subject: topRadar.subject,
+        submodule: topRadar.recommendedAction || 'Spaced Repetition Review',
+        reason: topRadar.reason || `Retention estimated at ${topRadar.retentionEstimate}%. Reviewing now restores long-term memory.`,
+        score: topRadar.retentionEstimate,
+        badge: `Urgency: ${topRadar.urgency.toUpperCase()}`
+      };
+    }
+
+    // Otherwise check lowest scored topic across subjects
+    let candidate: { name: string; subject: string; score: number; diff: string } | null = null;
+    for (const s of subjects) {
+      if (!s.units) continue;
+      for (const u of s.units) {
+        for (const t of u.topics) {
+          if (!candidate || t.quizScore < candidate.score) {
+            candidate = {
+              name: t.name,
+              subject: s.name,
+              score: t.quizScore,
+              diff: t.difficulty || 'medium'
+            };
+          }
+        }
+      }
+    }
+
+    if (candidate) {
+      return {
+        name: candidate.name,
+        subject: candidate.subject,
+        submodule: 'Targeted Gap Closure',
+        reason: `Your current recorded mastery is ${candidate.score}%. An active recall session will build lasting retention.`,
+        score: candidate.score,
+        badge: `Difficulty: ${candidate.diff.toUpperCase()}`
+      };
+    }
+
+    const firstSubj = subjects[0];
+    return {
+      name: firstSubj?.name ? `${firstSubj.name} Foundations` : 'Core Concepts',
+      subject: firstSubj?.name || 'My Courses',
+      submodule: 'Active Learning Mode',
+      reason: 'Build your initial mastery with active recall, flashcards, and mind maps.',
+      score: 45,
+      badge: 'Active Topic'
+    };
+  }, [revisionRadar, subjects]);
 
   const handleAddPlan = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,16 +166,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                 <Target className="w-4 h-4" /> TODAY'S FOCUS
               </span>
               <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/60 border border-amber-500/40 text-amber-300">
-                Difficulty: Hard (Exam Weightage: 24%)
+                {focusTopic.badge}
               </span>
             </div>
 
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Trees & Binary Search Trees
+                {focusTopic.name}
               </h2>
               <p className="text-slate-300 text-sm mt-1">
-                Data Structures & Algorithms • Sub-module: AVL Rotations & Rebalancing
+                {focusTopic.subject} • {focusTopic.submodule}
               </p>
             </div>
 
@@ -130,8 +186,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                 <span>Why NOVA recommends it:</span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                You've been getting questions on <strong className="text-cyan-200">AVL rotations wrong</strong> in recent practice (mastery at 54%). 
-                Your upcoming Data Structures exam is in 14 days. Reviewing this now prevents compounding gaps.
+                {focusTopic.reason}
               </p>
             </div>
 
@@ -139,11 +194,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
             <div className="grid grid-cols-3 gap-3 pt-1">
               <div className="p-3 rounded-xl bg-[#161f36]/70 border border-slate-800 text-center">
                 <span className="block text-xs text-slate-400">Est. Time</span>
-                <span className="text-lg font-bold text-white">45 min</span>
+                <span className="text-lg font-bold text-white">35 min</span>
               </div>
               <div className="p-3 rounded-xl bg-[#161f36]/70 border border-slate-800 text-center">
-                <span className="block text-xs text-slate-400">Current Progress</span>
-                <span className="text-lg font-bold text-amber-400">54%</span>
+                <span className="block text-xs text-slate-400">Current Mastery</span>
+                <span className="text-lg font-bold text-amber-400">{focusTopic.score}%</span>
               </div>
               <div className="p-3 rounded-xl bg-[#161f36]/70 border border-slate-800 text-center">
                 <span className="block text-xs text-slate-400">Target Score</span>
@@ -155,28 +210,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
             <div className="flex flex-wrap gap-2.5 pt-2">
               <button
                 type="button"
-                onClick={() => onNavigate('tutor', { topic: 'AVL Trees & Rotations', subject: 'Data Structures & Algorithms' })}
+                onClick={() => onNavigate('tutor', { topic: focusTopic.name, subject: focusTopic.subject })}
                 className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-md"
               >
                 <Sparkles className="w-3.5 h-3.5" /> Ask NOVA AI
               </button>
               <button
                 type="button"
-                onClick={() => onNavigate('mindmaps', { topic: 'Binary Search Trees & AVL', subject: 'Data Structures & Algorithms' })}
+                onClick={() => onNavigate('mindmaps', { topic: focusTopic.name, subject: focusTopic.subject })}
                 className="px-4 py-2 rounded-xl bg-[#1a233c] hover:bg-[#202c4b] border border-cyan-500/30 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
               >
                 <Brain className="w-3.5 h-3.5" /> Open Mind Map
               </button>
               <button
                 type="button"
-                onClick={() => onNavigate('recall', { topic: 'AVL Trees & Rotations', subject: 'Data Structures & Algorithms' })}
+                onClick={() => onNavigate('recall', { topic: focusTopic.name, subject: focusTopic.subject })}
                 className="px-4 py-2 rounded-xl bg-[#1a233c] hover:bg-[#202c4b] border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
               >
                 <Target className="w-3.5 h-3.5" /> Take Recall Quiz
               </button>
               <button
                 type="button"
-                onClick={() => onNavigate('notes', { topic: 'AVL Trees', subject: 'Data Structures & Algorithms' })}
+                onClick={() => onNavigate('notes', { topic: focusTopic.name, subject: focusTopic.subject })}
                 className="px-4 py-2 rounded-xl bg-[#1a233c] hover:bg-[#202c4b] border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
               >
                 <FileText className="w-3.5 h-3.5" /> Cheat Sheet
