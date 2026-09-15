@@ -1,0 +1,6 @@
+{
+  "name": "NOVA — Your Personal AI Study Companion",
+  "description": "Personalized AI study operating system for students. Understand faster, remember longer, study smarter.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
