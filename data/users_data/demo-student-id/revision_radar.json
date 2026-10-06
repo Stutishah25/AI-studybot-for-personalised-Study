@@ -1,0 +1,57 @@
+[
+  {
+    "id": "rad-1",
+    "topic": "Binary Search Trees & Traversal",
+    "subject": "Data Structures & Algorithms",
+    "lastReviewedDaysAgo": 6,
+    "retentionEstimate": 42,
+    "status": "due-now",
+    "urgency": "high",
+    "reason": "You learned this 6 days ago and haven’t practiced it since. Forgetting curve threshold reached.",
+    "recommendedAction": "Take a 5-minute Active Recall test on Inorder successor edge cases."
+  },
+  {
+    "id": "rad-2",
+    "topic": "AVL Trees & Rotations (LL, RR, LR, RL)",
+    "subject": "Data Structures & Algorithms",
+    "lastReviewedDaysAgo": 3,
+    "retentionEstimate": 54,
+    "status": "due-now",
+    "urgency": "high",
+    "reason": "Recent quiz accuracy dropped to 54%. Reviewing rotations now will cement pattern recognition.",
+    "recommendedAction": "Inspect the interactive visual mind map and solve 3 balance factor exercises."
+  },
+  {
+    "id": "rad-3",
+    "topic": "Paging, TLB & Virtual Memory",
+    "subject": "Computer Organization & Architecture",
+    "lastReviewedDaysAgo": 5,
+    "retentionEstimate": 58,
+    "status": "due-soon",
+    "urgency": "medium",
+    "reason": "Exam in 8 days. Effective Access Time (EAT) formulas need reinforcement.",
+    "recommendedAction": "Quick 10-minute formula review with the Notes Studio cheat sheet."
+  },
+  {
+    "id": "rad-4",
+    "topic": "Correlated Subqueries & Nested Queries",
+    "subject": "Database Management Systems",
+    "lastReviewedDaysAgo": 4,
+    "retentionEstimate": 62,
+    "status": "due-soon",
+    "urgency": "medium",
+    "reason": "Weak area flagged from last week’s practice session. Accuracy currently at 48%.",
+    "recommendedAction": "Practice converting 2 correlated queries into JOIN equivalents."
+  },
+  {
+    "id": "rad-5",
+    "topic": "Arrays & Dynamic Arrays",
+    "subject": "Data Structures & Algorithms",
+    "lastReviewedDaysAgo": 2,
+    "retentionEstimate": 92,
+    "status": "recently-reviewed",
+    "urgency": "low",
+    "reason": "Mastery confirmed at 92%. Solid retention on dynamic amortized O(1) resizing.",
+    "recommendedAction": "Next review scheduled in 12 days."
+  }
+]

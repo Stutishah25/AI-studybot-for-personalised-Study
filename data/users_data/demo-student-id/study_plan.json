@@ -1,0 +1,42 @@
+[
+  {
+    "id": "sp-1",
+    "time": "09:00",
+    "title": "Review Linked Lists & Pointer Shifts",
+    "durationMinutes": 20,
+    "type": "review",
+    "topic": "Singly & Doubly Linked Lists",
+    "subject": "Data Structures & Algorithms",
+    "completed": true
+  },
+  {
+    "id": "sp-2",
+    "time": "10:00",
+    "title": "Practice Binary Search Trees & AVL Rotations",
+    "durationMinutes": 35,
+    "type": "practice",
+    "topic": "AVL Trees & Rotations (LL, RR, LR, RL)",
+    "subject": "Data Structures & Algorithms",
+    "completed": false
+  },
+  {
+    "id": "sp-3",
+    "time": "16:00",
+    "title": "Quick Active Recall Quiz on Paging & TLB",
+    "durationMinutes": 15,
+    "type": "quiz",
+    "topic": "Paging, TLB & Virtual Memory",
+    "subject": "Computer Organization & Architecture",
+    "completed": false
+  },
+  {
+    "id": "sp-4",
+    "time": "20:00",
+    "title": "Revise Weak Concept: Correlated Subqueries",
+    "durationMinutes": 20,
+    "type": "concept",
+    "topic": "Correlated Subqueries & Nested Queries",
+    "subject": "Database Management Systems",
+    "completed": false
+  }
+]

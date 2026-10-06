@@ -1,0 +1,51 @@
+[
+  {
+    "id": "sc-1",
+    "subject": "Computer Networks",
+    "topic": "OSI 7 Layers",
+    "title": "OSI Layer Hierarchy (Physical to Application)",
+    "mnemonic": "Please Do Not Throw Sausage Pizza Away",
+    "story": "Imagine an Italian chef preparing a royal feast who gently tells his kitchen crew: \"Please Do Not Throw Sausage Pizza Away!\"",
+    "visualAssociation": "A 7-story Italian pizza tower where the ground floor is Physical wiring, and the penthouse roof is the Application browser.",
+    "whyItWorks": "Uses strong sensory imagery (warm sausage pizza) paired with the exact first letters: Physical (P), Data Link (D), Network (N), Transport (T), Session (S), Presentation (P), Application (A).",
+    "tags": [
+      "Networking",
+      "OSI",
+      "High-Yield Mnemonic"
+    ],
+    "createdAt": "3 days ago"
+  },
+  {
+    "id": "sc-2",
+    "subject": "Database Management Systems",
+    "topic": "ACID Properties",
+    "title": "ACID Transaction Guarantees",
+    "mnemonic": "All Cars In Drive",
+    "story": "Four heavy armored trucks traveling in tight convoy: Atomicity (all or nothing), Consistency (valid state), Isolation (no collision), Durability (written to stone).",
+    "visualAssociation": "Four sturdy gears locked together inside an indestructible armored safe.",
+    "whyItWorks": "Relates an abstract safety contract to four tangible mechanical rules that ensure zero data corruption during power cuts.",
+    "tags": [
+      "DBMS",
+      "Transactions",
+      "ACID"
+    ],
+    "createdAt": "5 days ago"
+  },
+  {
+    "id": "sc-3",
+    "subject": "Data Structures & Algorithms",
+    "topic": "AVL Rotations",
+    "title": "AVL Left-Right / Right-Left Balancing Rule",
+    "mnemonic": "Straighten then Swing",
+    "story": "When a tree has an \"elbow\" crook (Left-Right or Right-Left), you cannot swing the branch yet! First, straighten the crooked arm into a straight line, then swing it like a pendulum.",
+    "visualAssociation": "A martial artist first extending a bent elbow into a straight arm, then rotating at the shoulder into perfect balance.",
+    "whyItWorks": "Solves the most common student error in AVL trees: attempting a single rotation on an LR/RL imbalance instead of first converting it to an LL/RR form.",
+    "tags": [
+      "DSA",
+      "AVL Trees",
+      "Rotations",
+      "Concept Shortcut"
+    ],
+    "createdAt": "1 week ago"
+  }
+]

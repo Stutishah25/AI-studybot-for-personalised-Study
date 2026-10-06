@@ -1,0 +1,18 @@
+{
+  "userId": "demo-student-id",
+  "name": "Stuti",
+  "degree": "B.Tech in Computer Engineering",
+  "college": "Sardar Patel Institute of Technology",
+  "yearSemester": "3rd Year • Semester 6",
+  "dailyStudyTime": "3-4 hours",
+  "preferredLearningStyle": "visual",
+  "studyDifficulties": [
+    "remembering-info",
+    "solving-problems",
+    "revising-before-exams"
+  ],
+  "onboarded": true,
+  "streak": 7,
+  "studyHours": 42.5,
+  "updatedAt": "2026-10-06T09:33:12.206Z"
+}

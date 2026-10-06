@@ -1,0 +1,403 @@
+[
+  {
+    "id": "dsa",
+    "name": "Data Structures & Algorithms",
+    "code": "CS301",
+    "description": "Fundamental linear & non-linear structures, complexity, tree rotations, graphs, and dynamic programming.",
+    "progress": 68,
+    "color": "indigo",
+    "accentColor": "#818cf8",
+    "units": [
+      {
+        "id": "dsa-u1",
+        "unitNumber": 1,
+        "title": "Linear Data Structures",
+        "topics": [
+          {
+            "id": "t-arrays",
+            "name": "Arrays & Dynamic Arrays",
+            "unitId": "dsa-u1",
+            "subjectId": "dsa",
+            "status": "mastered",
+            "quizScore": 92,
+            "confidenceScore": 95,
+            "lastReviewedDaysAgo": 2,
+            "difficulty": "easy",
+            "notesCount": 3
+          },
+          {
+            "id": "t-linkedlist",
+            "name": "Singly & Doubly Linked Lists",
+            "unitId": "dsa-u1",
+            "subjectId": "dsa",
+            "status": "mastered",
+            "quizScore": 81,
+            "confidenceScore": 84,
+            "lastReviewedDaysAgo": 5,
+            "difficulty": "medium",
+            "notesCount": 2
+          },
+          {
+            "id": "t-stacks",
+            "name": "Stacks & Expression Evaluation",
+            "unitId": "dsa-u1",
+            "subjectId": "dsa",
+            "status": "mastered",
+            "quizScore": 89,
+            "confidenceScore": 90,
+            "lastReviewedDaysAgo": 4,
+            "difficulty": "easy",
+            "notesCount": 2
+          },
+          {
+            "id": "t-queues",
+            "name": "Queues & Circular Buffers",
+            "unitId": "dsa-u1",
+            "subjectId": "dsa",
+            "status": "learning",
+            "quizScore": 72,
+            "confidenceScore": 70,
+            "lastReviewedDaysAgo": 7,
+            "difficulty": "medium",
+            "notesCount": 1
+          }
+        ]
+      },
+      {
+        "id": "dsa-u2",
+        "unitNumber": 2,
+        "title": "Hierarchical & Tree Structures",
+        "topics": [
+          {
+            "id": "t-bst",
+            "name": "Binary Search Trees & Traversal",
+            "unitId": "dsa-u2",
+            "subjectId": "dsa",
+            "status": "needs-revision",
+            "quizScore": 65,
+            "confidenceScore": 60,
+            "lastReviewedDaysAgo": 6,
+            "difficulty": "medium",
+            "notesCount": 2
+          },
+          {
+            "id": "t-avl",
+            "name": "AVL Trees & Rotations (LL, RR, LR, RL)",
+            "unitId": "dsa-u2",
+            "subjectId": "dsa",
+            "status": "needs-revision",
+            "quizScore": 54,
+            "confidenceScore": 45,
+            "lastReviewedDaysAgo": 3,
+            "difficulty": "hard",
+            "notesCount": 2
+          },
+          {
+            "id": "t-heaps",
+            "name": "Binary Heaps & Priority Queues",
+            "unitId": "dsa-u2",
+            "subjectId": "dsa",
+            "status": "learning",
+            "quizScore": 68,
+            "confidenceScore": 62,
+            "lastReviewedDaysAgo": 9,
+            "difficulty": "medium",
+            "notesCount": 1
+          }
+        ]
+      },
+      {
+        "id": "dsa-u3",
+        "unitNumber": 3,
+        "title": "Graphs & Optimization",
+        "topics": [
+          {
+            "id": "t-graph-basics",
+            "name": "Graph Representations (Adj Matrix / List)",
+            "unitId": "dsa-u3",
+            "subjectId": "dsa",
+            "status": "learning",
+            "quizScore": 64,
+            "confidenceScore": 60,
+            "lastReviewedDaysAgo": 8,
+            "difficulty": "medium",
+            "notesCount": 1
+          },
+          {
+            "id": "t-graph-sp",
+            "name": "Shortest Paths (Dijkstra & Bellman-Ford)",
+            "unitId": "dsa-u3",
+            "subjectId": "dsa",
+            "status": "needs-revision",
+            "quizScore": 43,
+            "confidenceScore": 38,
+            "lastReviewedDaysAgo": 10,
+            "difficulty": "hard",
+            "notesCount": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dbms",
+    "name": "Database Management Systems",
+    "code": "CS302",
+    "description": "Relational algebra, SQL query optimization, transactions, ACID properties, and indexing.",
+    "progress": 74,
+    "color": "cyan",
+    "accentColor": "#22d3ee",
+    "units": [
+      {
+        "id": "dbms-u1",
+        "unitNumber": 1,
+        "title": "Relational Foundations & SQL",
+        "topics": [
+          {
+            "id": "t-sql-basics",
+            "name": "Basic SQL Queries & Joins",
+            "unitId": "dbms-u1",
+            "subjectId": "dbms",
+            "status": "mastered",
+            "quizScore": 89,
+            "confidenceScore": 92,
+            "lastReviewedDaysAgo": 3,
+            "difficulty": "easy",
+            "notesCount": 2
+          },
+          {
+            "id": "t-sql-nested",
+            "name": "Correlated Subqueries & Nested Queries",
+            "unitId": "dbms-u1",
+            "subjectId": "dbms",
+            "status": "needs-revision",
+            "quizScore": 48,
+            "confidenceScore": 40,
+            "lastReviewedDaysAgo": 4,
+            "difficulty": "hard",
+            "notesCount": 2
+          }
+        ]
+      },
+      {
+        "id": "dbms-u2",
+        "unitNumber": 2,
+        "title": "Normalization & Storage",
+        "topics": [
+          {
+            "id": "t-normal-forms",
+            "name": "1NF, 2NF, 3NF & BCNF",
+            "unitId": "dbms-u2",
+            "subjectId": "dbms",
+            "status": "learning",
+            "quizScore": 71,
+            "confidenceScore": 65,
+            "lastReviewedDaysAgo": 8,
+            "difficulty": "medium",
+            "notesCount": 1
+          },
+          {
+            "id": "t-b-trees",
+            "name": "B-Trees & B+ Trees Indexing",
+            "unitId": "dbms-u2",
+            "subjectId": "dbms",
+            "status": "learning",
+            "quizScore": 63,
+            "confidenceScore": 55,
+            "lastReviewedDaysAgo": 11,
+            "difficulty": "hard",
+            "notesCount": 1
+          }
+        ]
+      },
+      {
+        "id": "dbms-u3",
+        "unitNumber": 3,
+        "title": "Transactions & Concurrency",
+        "topics": [
+          {
+            "id": "t-acid",
+            "name": "ACID Properties & Serializability",
+            "unitId": "dbms-u3",
+            "subjectId": "dbms",
+            "status": "mastered",
+            "quizScore": 85,
+            "confidenceScore": 88,
+            "lastReviewedDaysAgo": 5,
+            "difficulty": "medium",
+            "notesCount": 2
+          },
+          {
+            "id": "t-locking",
+            "name": "Two-Phase Locking (2PL) & Deadlocks",
+            "unitId": "dbms-u3",
+            "subjectId": "dbms",
+            "status": "learning",
+            "quizScore": 66,
+            "confidenceScore": 60,
+            "lastReviewedDaysAgo": 6,
+            "difficulty": "hard",
+            "notesCount": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "coa",
+    "name": "Computer Organization & Architecture",
+    "code": "CS303",
+    "description": "CPU pipeline hazards, cache mapping algorithms, instruction set architectures, and virtual memory.",
+    "progress": 58,
+    "color": "violet",
+    "accentColor": "#a78bfa",
+    "units": [
+      {
+        "id": "coa-u1",
+        "unitNumber": 1,
+        "title": "Processor & Memory Hierarchy",
+        "topics": [
+          {
+            "id": "t-cache",
+            "name": "Direct & Set-Associative Cache Mapping",
+            "unitId": "coa-u1",
+            "subjectId": "coa",
+            "status": "learning",
+            "quizScore": 69,
+            "confidenceScore": 64,
+            "lastReviewedDaysAgo": 6,
+            "difficulty": "medium",
+            "notesCount": 1
+          },
+          {
+            "id": "t-paging",
+            "name": "Paging, TLB & Virtual Memory",
+            "unitId": "coa-u1",
+            "subjectId": "coa",
+            "status": "needs-revision",
+            "quizScore": 52,
+            "confidenceScore": 42,
+            "lastReviewedDaysAgo": 5,
+            "difficulty": "hard",
+            "notesCount": 2
+          }
+        ]
+      },
+      {
+        "id": "coa-u2",
+        "unitNumber": 2,
+        "title": "Instruction Execution & Pipelining",
+        "topics": [
+          {
+            "id": "t-pipeline",
+            "name": "5-Stage RISC Pipeline & Hazards",
+            "unitId": "coa-u2",
+            "subjectId": "coa",
+            "status": "learning",
+            "quizScore": 62,
+            "confidenceScore": 58,
+            "lastReviewedDaysAgo": 9,
+            "difficulty": "hard",
+            "notesCount": 1
+          },
+          {
+            "id": "t-interrupts",
+            "name": "I/O Interrupts & DMA Transfers",
+            "unitId": "coa-u2",
+            "subjectId": "coa",
+            "status": "not-started",
+            "quizScore": 0,
+            "confidenceScore": 20,
+            "lastReviewedDaysAgo": 14,
+            "difficulty": "medium",
+            "notesCount": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dm",
+    "name": "Discrete Mathematics",
+    "code": "CS304",
+    "description": "Propositional logic, recurrence relations, graph colorings, and combinatorial proofs.",
+    "progress": 82,
+    "color": "amber",
+    "accentColor": "#fbbf24",
+    "units": [
+      {
+        "id": "dm-u1",
+        "unitNumber": 1,
+        "title": "Logic & Proofs",
+        "topics": [
+          {
+            "id": "t-prop-logic",
+            "name": "Propositional Calculus & Truth Tables",
+            "unitId": "dm-u1",
+            "subjectId": "dm",
+            "status": "mastered",
+            "quizScore": 95,
+            "confidenceScore": 96,
+            "lastReviewedDaysAgo": 3,
+            "difficulty": "easy",
+            "notesCount": 2
+          },
+          {
+            "id": "t-recurrence",
+            "name": "Solving Recurrence Relations (Master Theorem)",
+            "unitId": "dm-u1",
+            "subjectId": "dm",
+            "status": "mastered",
+            "quizScore": 84,
+            "confidenceScore": 85,
+            "lastReviewedDaysAgo": 4,
+            "difficulty": "medium",
+            "notesCount": 2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "python",
+    "name": "Python for Computing",
+    "code": "CS305",
+    "description": "List comprehensions, OOP principles, generator patterns, NumPy vectorization.",
+    "progress": 90,
+    "color": "emerald",
+    "accentColor": "#34d399",
+    "units": [
+      {
+        "id": "py-u1",
+        "unitNumber": 1,
+        "title": "Python Core & Advanced Patterns",
+        "topics": [
+          {
+            "id": "t-py-basics",
+            "name": "Python Fundamentals & Dictionaries",
+            "unitId": "py-u1",
+            "subjectId": "py-u1",
+            "status": "mastered",
+            "quizScore": 94,
+            "confidenceScore": 96,
+            "lastReviewedDaysAgo": 2,
+            "difficulty": "easy",
+            "notesCount": 1
+          },
+          {
+            "id": "t-py-generators",
+            "name": "Generators, Decorators & Closures",
+            "unitId": "py-u1",
+            "subjectId": "py-u1",
+            "status": "mastered",
+            "quizScore": 88,
+            "confidenceScore": 90,
+            "lastReviewedDaysAgo": 5,
+            "difficulty": "medium",
+            "notesCount": 2
+          }
+        ]
+      }
+    ]
+  }
+]

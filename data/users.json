@@ -1,0 +1,18 @@
+[
+  {
+    "id": "demo-student-id",
+    "email": "demo@nova.study",
+    "passwordHash": "$2b$10$hNeEhy96/K2u3sl28IAp1.tM0QBkpkpt/yEo3Nw/MbfgJ5wAMF.dW",
+    "name": "Stuti (Demo)",
+    "isDemo": true,
+    "createdAt": "2026-10-06T09:33:12.205Z"
+  },
+  {
+    "id": "usr_1791312052592_u8czsqj",
+    "email": "stuti.shah25@spit.ac.in",
+    "passwordHash": "$2b$10$DcL7zWVVCX7eQLKUJZoEreeN6YNMzdBgCYhely9ywUwa.ez3aBWUu",
+    "name": "Stuti Shah",
+    "isDemo": false,
+    "createdAt": "2026-10-06T18:40:52.592Z"
+  }
+]

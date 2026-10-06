@@ -1,0 +1,56 @@
+[
+  {
+    "id": "note-1",
+    "title": "AVL Tree Rotations — Visual Cheat Sheet",
+    "subject": "Data Structures & Algorithms",
+    "topic": "AVL Trees & Rotations",
+    "type": "cheatsheet",
+    "noteType": "cheatsheet",
+    "length": "quick",
+    "summary": "Compact summary of balance factors, RR/LL/LR/RL rotations, and time complexities.",
+    "content": "# AVL Tree Balancing Cheat Sheet\n\n### Balance Factor Formula:\n```\nBalance Factor (BF) = Height(Left Subtree) - Height(Right Subtree)\nAllowed range: {-1, 0, +1}\n```\n\n### The 4 Rotations:\n1. **Left-Left (LL) Case**: Node inserted into left subtree of left child (BF = +2).\n   - *Fix*: Single **Right Rotation** at grandparent.\n2. **Right-Right (RR) Case**: Node inserted into right subtree of right child (BF = -2).\n   - *Fix*: Single **Left Rotation** at grandparent.\n3. **Left-Right (LR) Case**: Node inserted into right subtree of left child.\n   - *Fix*: Double rotation — Left rotate child, then Right rotate grandparent.\n4. **Right-Left (RL) Case**: Node inserted into left subtree of right child.\n   - *Fix*: Double rotation — Right rotate child, then Left rotate grandparent.\n\n### Time Complexity:\n- Search: O(log n)\n- Insert: O(log n) (at most 2 rotations)\n- Delete: O(log n) (may require O(log n) rotations up the tree)",
+    "createdAt": "2 days ago",
+    "tags": [
+      "DSA",
+      "Trees",
+      "Rotations",
+      "Exam High-Yield"
+    ]
+  },
+  {
+    "id": "note-2",
+    "title": "Paging vs Segmentation in 5 Minutes",
+    "subject": "Computer Organization & Architecture",
+    "topic": "Paging, TLB & Virtual Memory",
+    "type": "quick-revision",
+    "noteType": "quick",
+    "length": "quick",
+    "summary": "Key distinctions between paging and segmentation, internal vs external fragmentation, and TLB access time.",
+    "content": "# Virtual Memory Architecture: Paging vs Segmentation\n\n### Paging:\n- **Block Size**: Fixed size (typically 4 KB pages and page frames).\n- **Programmer View**: Invisible to the programmer; hardware/OS level abstraction.\n- **Fragmentation**: Suffers from **Internal Fragmentation** (last page may not be full), zero external fragmentation.\n- **Address Translation**: Logical address = (Page Number 'p', Offset 'd').\n\n### Segmentation:\n- **Block Size**: Variable size based on program modules (Code segment, Data segment, Stack).\n- **Programmer View**: Visible; matches high-level program structure.\n- **Fragmentation**: Suffers from **External Fragmentation** (variable sized gaps in memory).\n\n### TLB (Translation Lookaside Buffer):\n- Hardware associative cache that stores recently used (VPN -> PFN) mappings.\n- **Effective Access Time (EAT)**: EAT = Hit_Ratio * (TLB_time + Memory_time) + (1 - Hit_Ratio) * (TLB_time + 2 * Memory_time).",
+    "createdAt": "3 days ago",
+    "tags": [
+      "COA",
+      "OS",
+      "Virtual Memory",
+      "Formula"
+    ]
+  },
+  {
+    "id": "note-3",
+    "title": "SQL Subqueries: Correlated vs Non-Correlated",
+    "subject": "Database Management Systems",
+    "topic": "Correlated Subqueries & Nested Queries",
+    "type": "definitions",
+    "noteType": "definitions",
+    "length": "detailed",
+    "summary": "Differences between independent subqueries and correlated row-by-row subqueries with worked examples.",
+    "content": "# SQL Subquery Deep Dive\n\n### 1. Non-Correlated Subquery:\nThe inner query executes **once** independently of the outer query.\n```sql\nSELECT name, salary \nFROM employees \nWHERE salary > (SELECT AVG(salary) FROM employees);\n```\n\n### 2. Correlated Subquery:\nThe inner query references a column from the outer query table, executing **once for every candidate row** of the outer query.\n```sql\nSELECT e1.name, e1.department, e1.salary\nFROM employees e1\nWHERE e1.salary > (\n    SELECT AVG(e2.salary)\n    FROM employees e2\n    WHERE e2.department = e1.department\n);\n```\n*Common Mistake*: Overusing correlated subqueries when an `INNER JOIN` with an aggregated subquery or a `WINDOW FUNCTION` (`AVG(salary) OVER(PARTITION BY department)`) is dramatically faster!",
+    "createdAt": "5 days ago",
+    "tags": [
+      "DBMS",
+      "SQL",
+      "Subqueries",
+      "Optimization"
+    ]
+  }
+]

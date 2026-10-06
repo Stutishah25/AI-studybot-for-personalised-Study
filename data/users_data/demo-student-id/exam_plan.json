@@ -1,0 +1,116 @@
+{
+  "id": "exam-networks-coa",
+  "subject": "Computer Networks & Architecture",
+  "examDate": "2026-09-23",
+  "daysLeft": 8,
+  "confidence": 62,
+  "priorityTopics": [
+    {
+      "topic": "TCP/IP Protocol Suite & Handshakes",
+      "priority": "High",
+      "weightage": "28% of Marks",
+      "confidence": 55
+    },
+    {
+      "topic": "Routing Algorithms (Dijkstra, Distance Vector)",
+      "priority": "High",
+      "weightage": "24% of Marks",
+      "confidence": 48
+    },
+    {
+      "topic": "Paging, TLB & Memory Hierarchy",
+      "priority": "High",
+      "weightage": "20% of Marks",
+      "confidence": 52
+    },
+    {
+      "topic": "Application Layer (DNS, HTTP/2, SMTP)",
+      "priority": "Medium",
+      "weightage": "16% of Marks",
+      "confidence": 75
+    },
+    {
+      "topic": "Network Security & Encryption Basics",
+      "priority": "Low",
+      "weightage": "12% of Marks",
+      "confidence": 82
+    }
+  ],
+  "revisionSchedule": [
+    {
+      "dayNumber": 1,
+      "dateStr": "Today",
+      "tasks": [
+        "Master TCP 3-Way Handshake & SYN Floods",
+        "Practice 2 TLB Effective Access Time problems",
+        "Recall Quiz: 10 Qs"
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "dateStr": "Tomorrow",
+      "tasks": [
+        "Distance Vector vs Link State Routing drill",
+        "Review subnetting (CIDR notation)",
+        "Create 1-page cheat sheet"
+      ]
+    },
+    {
+      "dayNumber": 3,
+      "dateStr": "In 2 Days",
+      "tasks": [
+        "Cache mapping (Direct vs 4-way associative)",
+        "Solve 3 previous year exam questions",
+        "Memory shortcut review"
+      ]
+    },
+    {
+      "dayNumber": 4,
+      "dateStr": "In 3 Days",
+      "tasks": [
+        "Full Unit 1 & 2 timed mock quiz (30 mins)",
+        "Analyze weak answers with NOVA AI",
+        "Remediation review"
+      ]
+    },
+    {
+      "dayNumber": 5,
+      "dateStr": "In 4 Days",
+      "tasks": [
+        "DNS hierarchy & recursive lookup flows",
+        "HTTP status codes & caching headers",
+        "Active recall session"
+      ]
+    },
+    {
+      "dayNumber": 6,
+      "dateStr": "In 5 Days",
+      "tasks": [
+        "Comprehensive Mock Exam 1 (60 minutes)",
+        "Weak topic targeted flash drills"
+      ]
+    },
+    {
+      "dayNumber": 7,
+      "dateStr": "In 6 Days",
+      "tasks": [
+        "High-yield formula & definition speed run",
+        "Formula sheet download & mental walkthrough"
+      ]
+    },
+    {
+      "dayNumber": 8,
+      "dateStr": "Exam Eve",
+      "tasks": [
+        "Light 45-min confidence review",
+        "Zero panic revision",
+        "Sleep 8 hours"
+      ]
+    }
+  ],
+  "dailyTargets": [
+    "Complete TCP Handshake active recall test",
+    "Solve 2 CIDR prefix masking calculations",
+    "Review 1 page cheat sheet for memory hierarchy"
+  ]
+}

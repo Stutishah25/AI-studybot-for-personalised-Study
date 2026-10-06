@@ -1,0 +1,126 @@
+{
+  "default": {
+    "id": "root-os",
+    "label": "Operating System Architecture",
+    "description": "The core resource orchestrator bridging user applications and hardware execution.",
+    "color": "#818cf8",
+    "children": [
+      {
+        "id": "mm-process",
+        "label": "Process Management",
+        "description": "Management of running programs, CPU scheduling, and context state switches.",
+        "color": "#38bdf8",
+        "keyPoints": [
+          "Process States (New, Ready, Running, Waiting, Terminated)",
+          "PCB (Process Control Block) carries registers & PID",
+          "CPU Scheduling (FCFS, Round Robin, SJF, Priority)"
+        ],
+        "relatedConcepts": [
+          "Threads & Concurrency",
+          "Context Switching Overhead",
+          "Deadlock Detection"
+        ],
+        "children": [
+          {
+            "id": "mm-proc-states",
+            "label": "Process States & Transitions",
+            "description": "5-state lifecycle model from creation to cleanup.",
+            "keyPoints": [
+              "Ready -> Running via Dispatcher",
+              "Running -> Waiting via I/O block",
+              "Preemption moves Running -> Ready"
+            ]
+          },
+          {
+            "id": "mm-sched",
+            "label": "CPU Scheduling Algorithms",
+            "description": "Maximizing CPU utilization and minimizing response latency.",
+            "keyPoints": [
+              "Preemptive vs Non-Preemptive",
+              "Round Robin uses Time Quantum",
+              "Multilevel Feedback Queues"
+            ]
+          },
+          {
+            "id": "mm-sync",
+            "label": "Synchronization & Semaphores",
+            "description": "Guarding critical sections to prevent race conditions.",
+            "keyPoints": [
+              "Mutex (Binary)",
+              "Counting Semaphore",
+              "Peterson's Solution",
+              "Dining Philosophers Problem"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mm-memory",
+        "label": "Memory Management",
+        "description": "Allocation of RAM, logical-to-physical address translation, and virtual memory isolation.",
+        "color": "#a78bfa",
+        "keyPoints": [
+          "MMU hardware address translation",
+          "Paging prevents external fragmentation",
+          "Demand Paging swap space"
+        ],
+        "relatedConcepts": [
+          "TLB Misses",
+          "Page Replacement (LRU, FIFO, Clock)",
+          "Thrashing"
+        ],
+        "children": [
+          {
+            "id": "mm-paging",
+            "label": "Paging & TLB",
+            "description": "Fixed-size memory mapping mechanism.",
+            "keyPoints": [
+              "Virtual Address = Page # + Offset",
+              "Multi-level page tables conserve RAM"
+            ]
+          },
+          {
+            "id": "mm-replacement",
+            "label": "Page Faults & Replacement",
+            "description": "Handling page misses when RAM frames are exhausted.",
+            "keyPoints": [
+              "Belady’s Anomaly in FIFO",
+              "Optimal Page Replacement (OPT)",
+              "Least Recently Used (LRU)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mm-storage",
+        "label": "File & I/O Systems",
+        "description": "Persistent secondary storage organization and directory indexing structures.",
+        "color": "#34d399",
+        "keyPoints": [
+          "Inodes store file metadata & pointer blocks",
+          "Disk scheduling (SCAN, C-LOOK, SSTF)",
+          "Journaling for crash recovery"
+        ],
+        "children": [
+          {
+            "id": "mm-file-sys",
+            "label": "File Allocation Methods",
+            "description": "Contiguous, Linked, and Indexed block allocation schemes.",
+            "keyPoints": [
+              "Inodes support direct, single, double, and triple indirect blocks"
+            ]
+          },
+          {
+            "id": "mm-disk-sched",
+            "label": "Disk Scheduling Algorithms",
+            "description": "Optimizing seek head mechanical movement.",
+            "keyPoints": [
+              "SCAN acts like an elevator",
+              "C-LOOK only scans towards the end with requests"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
