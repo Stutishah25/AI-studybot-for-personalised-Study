@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import http from 'http';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
@@ -31,6 +32,16 @@ try {
 const __filename = resolvedFilename || (process.argv && process.argv[1] ? String(process.argv[1]) : '');
 const __dirname = __filename ? path.dirname(__filename) : (typeof process.cwd === 'function' ? process.cwd() : '.');
 
+// Determine the build directory dynamically using fs check
+const possibleDistPaths = [
+  path.resolve(__dirname), // If index.html is directly beside server.cjs
+  path.resolve(__dirname, '..', 'dist'), // If server.cjs is in dist/ and assets are in dist/
+  path.resolve(process.cwd(), 'dist') // Root execution fallback
+];
+
+export const CLIENT_DIST_PATH = possibleDistPaths.find(p => fs.existsSync(path.join(p, 'index.html'))) || possibleDistPaths[0];
+export const STATIC_DIST_DIR = CLIENT_DIST_PATH;
+
 // Ensure process.env.PORT defaults to 10000 if undefined
 if (!process.env.PORT) {
   process.env.PORT = '10000';
@@ -39,10 +50,9 @@ const argPortIndex = process.argv ? process.argv.indexOf('--port') : -1;
 const cliPort = argPortIndex !== -1 && process.argv[argPortIndex + 1] ? process.argv[argPortIndex + 1] : undefined;
 const PORT = parseInt(cliPort || process.env.PORT || '10000', 10) || 10000;
 
-// Safe base, data storage, and client distribution paths with string fallbacks
+// Safe base and data storage paths with string fallbacks
 const baseDir = (typeof __dirname === 'string' && __dirname) || (typeof process.cwd === 'function' && process.cwd()) || '.';
 export const STORAGE_DATA_DIR = path.resolve(baseDir, 'data') || path.join(__dirname, '../data') || './data';
-export const STATIC_DIST_DIR = path.resolve(baseDir, 'dist') || path.join(__dirname, '../dist') || './dist';
 
 const app = express();
 
@@ -1007,12 +1017,14 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // Safe string fallbacks for client distribution directory and entry point
-    const distPath = STATIC_DIST_DIR || path.join(__dirname, '../dist') || path.resolve(baseDir, 'dist') || './dist';
-    app.use(express.static(distPath));
+    app.use(express.static(CLIENT_DIST_PATH));
     app.get('*', (req: Request, res: Response) => {
-      const indexPath = path.resolve(distPath, 'index.html') || path.join(distPath, 'index.html') || './dist/index.html';
-      res.sendFile(indexPath);
+      const indexPath = path.join(CLIENT_DIST_PATH, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send('Application build files not found.');
+      }
     });
   }
 
