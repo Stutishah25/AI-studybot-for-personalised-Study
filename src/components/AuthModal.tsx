@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Lock, Mail, User as UserIcon, ArrowRight, Compass, CheckCircle2, AlertCircle } from 'lucide-react';
+import { AcademicLevel, AcademicStream } from '../types';
+import { Sparkles, Lock, Mail, User as UserIcon, ArrowRight, Compass, CheckCircle2, AlertCircle, GraduationCap, Layers } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, authModalView, setAuthModalView, login, signup, loginDemo } = useAuth();
@@ -8,6 +9,8 @@ export const AuthModal: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [academicLevel, setAcademicLevel] = useState<AcademicLevel>('Undergrad');
+  const [stream, setStream] = useState<AcademicStream>('General');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -24,7 +27,7 @@ export const AuthModal: React.FC = () => {
         setIsSubmitting(false);
         return;
       }
-      const res = await signup(email, password, name);
+      const res = await signup(email, password, name, academicLevel, stream);
       if (!res.success) {
         setError(res.error || 'Failed to create account');
       }
@@ -100,20 +103,59 @@ export const AuthModal: React.FC = () => {
           )}
 
           {authModalView === 'signup' && (
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
-              <div className="relative">
-                <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Alex Morgan"
-                  className="w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                />
+            <>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="e.g. Alex Morgan"
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                  />
+                </div>
               </div>
-            </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1 flex items-center gap-1">
+                    <GraduationCap className="w-3 h-3 text-cyan-400" /> Academic Level
+                  </label>
+                  <select
+                    value={academicLevel}
+                    onChange={e => setAcademicLevel(e.target.value as AcademicLevel)}
+                    className="w-full px-2.5 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="Middle School">Middle School</option>
+                    <option value="High School">High School</option>
+                    <option value="AP/IB">AP / IB Diploma</option>
+                    <option value="Undergrad">Undergraduate</option>
+                    <option value="Postgrad">Postgraduate</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1 flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-violet-400" /> Stream / Domain
+                  </label>
+                  <select
+                    value={stream}
+                    onChange={e => setStream(e.target.value as AcademicStream)}
+                    className="w-full px-2.5 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="General">General / STEM</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Pre-Med">Pre-Med / Health</option>
+                    <option value="Business/Econ">Business & Econ</option>
+                    <option value="Law">Law & Legal</option>
+                    <option value="Humanities">Humanities</option>
+                  </select>
+                </div>
+              </div>
+            </>
           )}
 
           <div>

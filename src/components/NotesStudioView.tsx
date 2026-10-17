@@ -26,7 +26,7 @@ interface NotesStudioViewProps {
 }
 
 export const NotesStudioView: React.FC<NotesStudioViewProps> = ({
-  initialTopic = 'Database Normalization',
+  initialTopic = '',
   onNavigate
 }) => {
   const { notes, addNote, updateNote, deleteNote, currentSubject } = useStudy();
@@ -332,32 +332,40 @@ export const NotesStudioView: React.FC<NotesStudioViewProps> = ({
           </div>
 
           <div className="space-y-2 max-h-[550px] overflow-y-auto">
-            {notes.map(note => (
-              <button
-                key={note.id}
-                type="button"
-                onClick={() => {
-                  setActiveNoteId(note.id);
-                  setIsEditing(false);
-                }}
-                className={`w-full p-3 rounded-xl border text-left transition-all group ${
-                  activeNote?.id === note.id
-                    ? 'bg-violet-950/50 border-violet-500/50 shadow-md'
-                    : 'bg-[#151c30] border-slate-800/80 hover:border-slate-700 hover:bg-[#182238]'
-                }`}
-              >
-                <span className="text-xs font-semibold text-white block truncate">
-                  {note.title}
-                </span>
-                <span className="text-[11px] text-slate-400 block truncate mt-0.5">
-                  {note.summary || (note.content ? note.content.slice(0, 80).replace(/[#*`\n]/g, ' ') : 'Saved Study Note')}
-                </span>
-                <div className="flex items-center justify-between mt-2 text-[10px] text-slate-500">
-                  <span className="capitalize">{(note.type || note.noteType || 'study-notes').replace(/-/g, ' ')}</span>
-                  <span>{note.createdAt}</span>
-                </div>
-              </button>
-            ))}
+            {notes.length > 0 ? (
+              notes.map(note => (
+                <button
+                  key={note.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveNoteId(note.id);
+                    setIsEditing(false);
+                  }}
+                  className={`w-full p-3 rounded-xl border text-left transition-all group ${
+                    activeNote?.id === note.id
+                      ? 'bg-violet-950/50 border-violet-500/50 shadow-md'
+                      : 'bg-[#151c30] border-slate-800/80 hover:border-slate-700 hover:bg-[#182238]'
+                  }`}
+                >
+                  <span className="text-xs font-semibold text-white block truncate">
+                    {note.title}
+                  </span>
+                  <span className="text-[11px] text-slate-400 block truncate mt-0.5">
+                    {note.summary || (note.content ? note.content.slice(0, 80).replace(/[#*`\n]/g, ' ') : 'Saved Study Note')}
+                  </span>
+                  <div className="flex items-center justify-between mt-2 text-[10px] text-slate-500">
+                    <span className="capitalize">{(note.type || note.noteType || 'study-notes').replace(/-/g, ' ')}</span>
+                    <span>{note.createdAt}</span>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="p-5 text-center text-slate-500 rounded-xl bg-[#0e1424] border border-slate-800/80 space-y-1">
+                <FileText className="w-5 h-5 text-slate-600 mx-auto" />
+                <p className="text-xs font-medium text-slate-400">No notes saved yet</p>
+                <p className="text-[10px] text-slate-600">Generated notes will appear here.</p>
+              </div>
+            )}
           </div>
         </div>
 

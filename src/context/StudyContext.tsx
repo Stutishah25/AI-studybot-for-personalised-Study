@@ -86,19 +86,17 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { user, token, isAuthenticated } = useAuth();
 
   const [profile, setProfile] = useState<StudentProfile>(initialStudentProfile);
-  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects);
-  const [currentSubjectId, setCurrentSubjectId] = useState<string>('dsa');
-  const [studyPlan, setStudyPlan] = useState<StudyPlanItem[]>(initialStudyPlan);
-  const [notes, setNotes] = useState<NoteItem[]>(initialNotes);
-  const [mindMaps, setMindMaps] = useState<Record<string, MindMapNode>>({
-    'Operating System Architecture': initialMindMap
-  });
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [currentSubjectId, setCurrentSubjectId] = useState<string>('');
+  const [studyPlan, setStudyPlan] = useState<StudyPlanItem[]>([]);
+  const [notes, setNotes] = useState<NoteItem[]>([]);
+  const [mindMaps, setMindMaps] = useState<Record<string, MindMapNode>>({});
   const [currentMindMap, setCurrentMindMap] = useState<MindMapNode>(initialMindMap);
-  const [memoryShortcuts, setMemoryShortcuts] = useState<MemoryShortcutItem[]>(initialMemoryShortcuts);
-  const [revisionRadar, setRevisionRadar] = useState<RevisionRadarItem[]>(initialRevisionRadar);
+  const [memoryShortcuts, setMemoryShortcuts] = useState<MemoryShortcutItem[]>([]);
+  const [revisionRadar, setRevisionRadar] = useState<RevisionRadarItem[]>([]);
   const [examPlan, setExamPlan] = useState<ExamCountdown>(initialExamPlan);
-  const [streak, setStreak] = useState<number>(7);
-  const [studyHours, setStudyHours] = useState<number>(18.5);
+  const [streak, setStreak] = useState<number>(0);
+  const [studyHours, setStudyHours] = useState<number>(0);
 
   const [isFocusModeOpen, setIsFocusModeOpen] = useState<boolean>(false);
   const [isCommandBarOpen, setIsCommandBarOpen] = useState<boolean>(false);
@@ -143,20 +141,38 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         }
 
-        // 2. Fetch subjects
-        const subjectsRes = await authFetch('/api/user/subjects');
+        // 2. Fetch subjects (v2 persistent multi-tenant endpoint)
+        const subjectsRes = await authFetch('/api/v2/subjects');
         if (subjectsRes.ok) {
           const subjData = await subjectsRes.json();
           if (Array.isArray(subjData.subjects)) {
-            setSubjects(subjData.subjects);
-            if (subjData.subjects.length > 0) {
-              setCurrentSubjectId(subjData.subjects[0].id);
+            const normalized = subjData.subjects.map((s: any) => ({
+              ...s,
+              name: s.name || s.title,
+              title: s.title || s.name,
+              code: s.code || s.courseCode,
+              courseCode: s.courseCode || s.code,
+              topics: s.topics || (s.units ? s.units.flatMap((u: any) => u.topics || []) : []),
+              units: s.units || [
+                {
+                  id: `u_${s.id}_1`,
+                  unitNumber: 1,
+                  title: 'Core Curriculum',
+                  topics: s.topics || []
+                }
+              ]
+            }));
+            setSubjects(normalized);
+            if (normalized.length > 0) {
+              setCurrentSubjectId(normalized[0].id);
+            } else {
+              setCurrentSubjectId('');
             }
           }
         }
 
-        // 3. Fetch notes
-        const notesRes = await authFetch('/api/user/notes');
+        // 3. Fetch notes (v2 with fallback)
+        const notesRes = await authFetch('/api/v2/notes');
         if (notesRes.ok) {
           const notesData = await notesRes.json();
           if (Array.isArray(notesData.notes)) {
@@ -186,12 +202,14 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         }
 
-        // 6. Fetch revision radar
-        const radarRes = await authFetch('/api/user/revision-radar');
+        // 6. Fetch revision radar (v2 with fallback)
+        const radarRes = await authFetch('/api/v2/radar');
         if (radarRes.ok) {
           const radarData = await radarRes.json();
           if (Array.isArray(radarData.revisionRadar)) {
             setRevisionRadar(radarData.revisionRadar);
+          } else if (Array.isArray(radarData.radar?.weakSpots)) {
+            setRevisionRadar(radarData.radar.weakSpots);
           }
         }
 
@@ -240,34 +258,68 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Add Subject
+  // Add Subject (v2 API)
   const addSubject = async (subjectData: Partial<Subject>) => {
     if (token) {
       try {
-        const res = await authFetch('/api/user/subjects', {
+        const payload = {
+          title: subjectData.title || subjectData.name,
+          name: subjectData.name || subjectData.title,
+          courseCode: subjectData.courseCode || subjectData.code,
+          code: subjectData.code || subjectData.courseCode,
+          academicLevel: (subjectData as any).academicLevel || profile.academicLevel || user?.academicLevel,
+          stream: (subjectData as any).stream || profile.stream || user?.stream,
+          targetExamDate: subjectData.targetExamDate,
+          description: subjectData.description,
+          customNotes: (subjectData as any).customNotes,
+          color: subjectData.color,
+          accentColor: subjectData.accentColor,
+          presetTopics: subjectData.topics || (subjectData.units ? subjectData.units.flatMap(u => u.topics) : undefined)
+        };
+
+        const res = await authFetch('/api/v2/subjects', {
           method: 'POST',
-          body: JSON.stringify(subjectData)
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (data.success && data.subject) {
-          setSubjects(prev => [...prev, data.subject]);
-          setCurrentSubjectId(data.subject.id);
+          const newSubj: Subject = {
+            ...data.subject,
+            name: data.subject.name || data.subject.title,
+            title: data.subject.title || data.subject.name,
+            code: data.subject.code || data.subject.courseCode,
+            courseCode: data.subject.courseCode || data.subject.code,
+            units: data.subject.units || [
+              {
+                id: `u_${data.subject.id}_1`,
+                unitNumber: 1,
+                title: 'Core Curriculum',
+                topics: data.subject.topics || []
+              }
+            ]
+          };
+          setSubjects(prev => [...prev.filter(s => s.id !== newSubj.id), newSubj]);
+          setCurrentSubjectId(newSubj.id);
           return;
         }
       } catch (err) {
-        console.error(err);
+        console.error('Failed to create subject on server:', err);
       }
     }
 
     // Local fallback
     const newSubject: Subject = {
       id: `subj_${Date.now()}`,
-      name: subjectData.name || 'New Subject',
-      code: subjectData.code || 'CS101',
+      title: subjectData.title || subjectData.name || 'New Subject',
+      name: subjectData.name || subjectData.title || 'New Subject',
+      courseCode: subjectData.courseCode || subjectData.code || 'CS101',
+      code: subjectData.code || subjectData.courseCode || 'CS101',
+      targetExamDate: subjectData.targetExamDate || '2026-11-20',
       description: subjectData.description || 'Subject description',
       progress: 0,
       color: subjectData.color || 'indigo',
       accentColor: subjectData.accentColor || '#818cf8',
+      topics: subjectData.topics || [],
       units: subjectData.units || []
     };
     setSubjects(prev => [...prev, newSubject]);
@@ -289,12 +341,12 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Delete Subject
+  // Delete Subject (v2 API)
   const deleteSubject = async (id: string) => {
     setSubjects(prev => prev.filter(s => s.id !== id));
     if (token) {
       try {
-        await authFetch(`/api/user/subjects/${id}`, { method: 'DELETE' });
+        await authFetch(`/api/v2/subjects/${id}`, { method: 'DELETE' });
       } catch (err) {
         console.error(err);
       }
@@ -654,16 +706,17 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const resetToDemoData = () => {
     setProfile(initialStudentProfile);
-    setSubjects(initialSubjects);
-    setStudyPlan(initialStudyPlan);
-    setNotes(initialNotes);
-    setMindMaps({ 'Operating System Architecture': initialMindMap });
+    setSubjects([]);
+    setStudyPlan([]);
+    setNotes([]);
+    setMindMaps({});
     setCurrentMindMap(initialMindMap);
-    setMemoryShortcuts(initialMemoryShortcuts);
-    setRevisionRadar(initialRevisionRadar);
+    setMemoryShortcuts([]);
+    setRevisionRadar([]);
     setExamPlan(initialExamPlan);
-    setStreak(12);
-    setStudyHours(18.5);
+    setStreak(0);
+    setStudyHours(0);
+    setCurrentSubjectId('');
   };
 
   return (

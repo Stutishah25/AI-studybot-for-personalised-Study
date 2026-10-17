@@ -23,54 +23,36 @@ interface SmartQuizViewProps {
 }
 
 export const SmartQuizView: React.FC<SmartQuizViewProps> = ({
-  initialTopic = 'Binary Search Trees & AVL',
+  initialTopic = '',
   initialSubject,
   onNavigate
 }) => {
   const { currentSubject, updateTopicStatus } = useStudy();
 
-  const [topic, setTopic] = useState(initialTopic);
+  const [topic, setTopic] = useState(initialTopic || currentSubject?.topics?.[0]?.name || '');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'exam-level'>('medium');
   const [questionCount, setQuestionCount] = useState<number>(3);
   const [loading, setLoading] = useState(false);
 
-  // Quiz execution state
-  const [questions, setQuestions] = useState<QuizQuestionItem[]>([
-    {
-      id: 'q1',
-      question: 'What is the maximum balance factor allowed for any node in an AVL tree to remain valid?',
-      options: ['0', '1', '2', '3'],
-      correctAnswerIndex: 1,
-      explanation: 'In AVL trees, the balance factor (Height(Left) - Height(Right)) must strictly be within {-1, 0, +1}. Any value of +2 or -2 triggers an immediate rotation.'
-    },
-    {
-      id: 'q2',
-      question: 'Which sequence of rotations balances a Left-Right (LR) heavy subtree imbalance?',
-      options: [
-        'Single Left rotation',
-        'Single Right rotation',
-        'Left rotation on child, then Right rotation on parent',
-        'Right rotation on child, then Left rotation on parent'
-      ],
-      correctAnswerIndex: 2,
-      explanation: 'An LR imbalance requires a double rotation: first a Left rotation on the left child, followed by a Right rotation on the parent node.'
-    },
-    {
-      id: 'q3',
-      question: 'What is the worst-case search time complexity in a self-balancing AVL tree with N nodes?',
-      options: ['O(1)', 'O(log N)', 'O(N)', 'O(N log N)'],
-      correctAnswerIndex: 1,
-      explanation: 'Because AVL trees guarantee that the height is strictly bounded by ~1.44 * log2(N), the worst-case search complexity is strictly O(log N).'
+  // Dynamic quiz state initialized to clean empty array (100% clean canvas, zero mock fallback)
+  const [questions, setQuestions] = useState<QuizQuestionItem[]>([]);
+
+  // Auto-fetch if initialTopic was explicitly passed
+  React.useEffect(() => {
+    if (initialTopic && initialTopic.trim()) {
+      setTopic(initialTopic.trim());
+      handleFetchQuiz(initialTopic.trim());
     }
-  ]);
+  }, [initialTopic]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
   const [quizFinished, setQuizFinished] = useState(false);
 
-  const handleFetchQuiz = async () => {
-    if (!topic.trim()) return;
+  const handleFetchQuiz = async (topicToOverride?: string) => {
+    const targetTopic = topicToOverride || topic;
+    if (!targetTopic || !targetTopic.trim()) return;
     setLoading(true);
     setQuizFinished(false);
     setCurrentIndex(0);
@@ -82,8 +64,8 @@ export const SmartQuizView: React.FC<SmartQuizViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject: currentSubject?.name || 'Computer Science',
-          topic: topic.trim(),
+          subject: currentSubject?.name || currentSubject?.title || 'General Studies',
+          topic: targetTopic.trim(),
           difficulty,
           count: questionCount
         })
@@ -116,17 +98,23 @@ export const SmartQuizView: React.FC<SmartQuizViewProps> = ({
       // Finish quiz
       setQuizFinished(true);
 
-      // Calculate score and update topic mastery
+      // Calculate score and update topic mastery dynamically
       let correct = 0;
       questions.forEach((q, idx) => {
         if (selectedAnswers[idx] === q.correctAnswerIndex) correct++;
       });
-      const accuracy = Math.round((correct / questions.length) * 100);
+      const accuracy = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
 
-      if (accuracy >= 80) {
-        updateTopicStatus(currentSubject?.id || 'dsa', 't-avl', 'mastered', 15);
-      } else {
-        updateTopicStatus(currentSubject?.id || 'dsa', 't-avl', 'needs-revision', -10);
+      const matchingTopic = currentSubject?.topics?.find(
+        t => t.name.toLowerCase() === topic.toLowerCase()
+      ) || currentSubject?.topics?.[0];
+
+      if (currentSubject?.id && matchingTopic?.id) {
+        if (accuracy >= 80) {
+          updateTopicStatus(currentSubject.id, matchingTopic.id, 'mastered', 15);
+        } else {
+          updateTopicStatus(currentSubject.id, matchingTopic.id, 'needs-revision', -10);
+        }
       }
     }
   };
@@ -164,7 +152,11 @@ export const SmartQuizView: React.FC<SmartQuizViewProps> = ({
             type="text"
             value={topic}
             onChange={e => setTopic(e.target.value)}
-            placeholder="Topic to test (e.g. Trees, B-Trees, Normalization, Paging)..."
+            placeholder={
+              currentSubject
+                ? `Topic to test in ${currentSubject.name || currentSubject.title} (e.g. ${currentSubject.topics?.[0]?.name || 'Core Concept'})...`
+                : "Topic to test (e.g. Enzyme Kinetics, Constitutional Law, Macroeconomics)..."
+            }
             className="flex-1 px-4 py-2.5 rounded-xl bg-[#182138] border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-400"
           />
           <button
@@ -218,9 +210,10 @@ export const SmartQuizView: React.FC<SmartQuizViewProps> = ({
         </div>
       </div>
 
-      {/* Main Quiz Area */}
+      {/* Main Quiz Area OR Setup Board */}
       {!quizFinished ? (
-        <div className="p-6 sm:p-8 rounded-2xl bg-[#111728] border border-slate-800/90 space-y-6 shadow-2xl">
+        questions.length > 0 && currentQ ? (
+          <div className="p-6 sm:p-8 rounded-2xl bg-[#111728] border border-slate-800/90 space-y-6 shadow-2xl">
           {/* Quiz Progress Bar */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-mono">
@@ -327,6 +320,58 @@ export const SmartQuizView: React.FC<SmartQuizViewProps> = ({
             )}
           </div>
         </div>
+        ) : (
+          /* Empty State Board */
+          <div className="p-10 rounded-2xl bg-[#111728] border border-slate-800/80 text-center space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-cyan-950/50 border border-cyan-800/40 flex items-center justify-center mx-auto text-cyan-400">
+              <HelpCircle className="w-8 h-8" />
+            </div>
+
+            <div className="max-w-md mx-auto space-y-2">
+              <h2 className="text-lg font-bold text-white">
+                Adaptive Knowledge Benchmark Ready
+              </h2>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Test your recall, identify weak spots, and calibrate exam confidence. Select a topic or choose from your course curriculum below to launch.
+              </p>
+            </div>
+
+            {currentSubject && currentSubject.topics && currentSubject.topics.length > 0 ? (
+              <div className="space-y-3 pt-2 max-w-xl mx-auto">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                  Suggested Topics in {currentSubject.name || currentSubject.title}:
+                </span>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {currentSubject.topics.slice(0, 6).map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setTopic(t.name);
+                        handleFetchQuiz(t.name);
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#182138] hover:bg-[#202c4b] border border-slate-700/70 hover:border-cyan-500/50 text-xs text-slate-200 hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('subjects')}
+                  className="px-4 py-2 rounded-xl bg-[#182138] hover:bg-[#202c4b] border border-slate-700 text-xs font-semibold text-cyan-300 transition-colors inline-flex items-center gap-1.5"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Go to Subject Workspace</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )
       ) : (
         /* End Summary Report */
         <div className="p-8 rounded-2xl bg-[#111728] border border-violet-500/30 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -371,12 +416,12 @@ export const SmartQuizView: React.FC<SmartQuizViewProps> = ({
           {/* Recommended Actions */}
           <div className="p-5 rounded-xl bg-violet-950/30 border border-violet-800/50 space-y-3">
             <span className="text-xs font-bold text-violet-300 uppercase tracking-wide block">
-              Recommended Revision Plan
+              Diagnostic Retention Feedback
             </span>
             <p className="text-xs text-slate-300 leading-relaxed">
               {accuracyPercent >= 80
-                ? 'Excellent retention! Your understanding of tree invariants and rotations is solid. Schedule your next revision in 5 days.'
-                : 'Double rotations (LR / RL) caused hesitation. Review the simple see-saw analogy and worked C++ example in the AI Tutor before moving to Graphs.'}
+                ? `Outstanding mastery of ${topic}! You have demonstrated robust conceptual recall and application. Schedule spaced repetition in 5 days.`
+                : `Targeted review recommended for ${topic}. Revisit key principles and active examples in the Socratic Tutor to close remaining gaps.`}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <button

@@ -536,4 +536,46 @@ router.post('/study-sessions', async (req: AuthenticatedRequest, res: Response) 
   }
 });
 
+// -------------------------------------------------------------
+// FLASHCARDS
+// -------------------------------------------------------------
+router.get('/flashcards', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const flashcards = db.getUserCollection<any[]>(userId, 'flashcards', []);
+    return res.json({ success: true, flashcards: Array.isArray(flashcards) ? flashcards : [] });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to fetch flashcards.' });
+  }
+});
+
+router.post('/flashcards', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const current = db.getUserCollection<any[]>(userId, 'flashcards', []);
+    if (Array.isArray(req.body.flashcards)) {
+      current.push(...req.body.flashcards);
+    } else {
+      current.unshift(req.body);
+    }
+    db.saveUserCollection(userId, 'flashcards', current);
+    return res.status(201).json({ success: true, flashcards: current });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to save flashcards.' });
+  }
+});
+
+// -------------------------------------------------------------
+// RADAR ALIAS
+// -------------------------------------------------------------
+router.get('/radar', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const radar = db.getUserCollection<any>(userId, 'radar', { topics: [], weakSpots: [] });
+    return res.json({ success: true, radar: radar || { topics: [], weakSpots: [] } });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to fetch radar.' });
+  }
+});
+
 export default router;

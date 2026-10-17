@@ -62,13 +62,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }> = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'subjects', label: 'My Subjects', icon: BookOpen },
-    { id: 'tutor', label: 'AI Tutor', icon: Sparkles, badge: 'NOVA', badgeColor: 'bg-violet-900/60 text-violet-300 border-violet-700/50' },
+    { id: 'tutor', label: 'AI Tutor', icon: Sparkles, badge: 'NOVA', badgeColor: 'bg-[#1C1811] text-[#E2C78E] border-[#C5A059]/40' },
     { id: 'notes', label: 'Notes Studio', icon: FileText },
-    { id: 'mindmaps', label: 'Mind Maps', icon: Network, badge: 'Interactive', badgeColor: 'bg-cyan-950/60 text-cyan-300 border-cyan-800/40' },
+    { id: 'mindmaps', label: 'Mind Maps', icon: Network, badge: 'Interactive', badgeColor: 'bg-teal-950/40 text-teal-300 border-teal-800/40' },
     { id: 'memory-lab', label: 'Memory Lab', icon: Zap },
     { id: 'recall', label: 'Recall Mode', icon: Target },
     { id: 'quiz', label: 'Smart Quiz', icon: HelpCircle },
-    { id: 'exam-mode', label: 'Exam Mode', icon: Calendar, badge: '8d', badgeColor: 'bg-amber-950/60 text-amber-300 border-amber-800/40' },
+    { id: 'exam-mode', label: 'Exam Mode', icon: Calendar, badge: 'Active', badgeColor: 'bg-[#1C1811] text-[#E2C78E] border-[#C5A059]/40' },
     { id: 'revision-radar', label: 'Revision Radar', icon: Radar },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'vault', label: 'My Vault', icon: Archive }
@@ -85,20 +85,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isMobileOpen && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden animate-in fade-in"
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm lg:hidden animate-in fade-in"
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 bg-[#0c111e] border-r border-slate-800/80 flex flex-col transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 bottom-0 left-0 z-40 bg-[#0B0D10] border-r border-[#2A2F37] flex flex-col transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-20' : 'w-64'
         } ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Header with Logo & Collapse Toggle */}
-        <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="h-16 px-4 border-b border-[#2A2F37] flex items-center justify-between">
           <div 
             onClick={() => handleSelect('home')} 
             className="cursor-pointer overflow-hidden whitespace-nowrap"
@@ -113,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#141c30] transition-colors"
+            className="hidden lg:flex p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#12151A] border border-transparent hover:border-[#2A2F37] transition-colors"
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -132,14 +132,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => handleSelect(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group relative ${
                   isActive
-                    ? 'bg-gradient-to-r from-violet-600/20 to-cyan-500/10 text-cyan-300 border border-cyan-500/30 font-semibold'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#13192a] border border-transparent'
+                    ? 'bg-[#161B22] text-[#E2C78E] border border-[#C5A059]/40 font-semibold shadow-inner'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#12151A] border border-transparent'
                 }`}
                 title={isCollapsed ? item.label : undefined}
               >
                 <div
                   className={`w-5 h-5 flex items-center justify-center shrink-0 transition-colors ${
-                    isActive ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'
+                    isActive ? 'text-[#C5A059]' : 'text-slate-400 group-hover:text-slate-200'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -158,9 +158,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 )}
 
-                {/* Subtle active indicator pill */}
+                {/* Subtle active indicator pill in Muted Bronze */}
                 {isActive && (
-                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-cyan-400"></span>
+                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#C5A059]"></span>
                 )}
               </button>
             );

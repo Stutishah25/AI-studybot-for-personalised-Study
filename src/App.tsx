@@ -45,10 +45,7 @@ function MainLayout() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Pre-fill state passed across views (e.g. from Dashboard or Radar to Tutor or Quiz)
-  const [prefillData, setPrefillData] = useState<{ topic?: string; subject?: string }>({
-    topic: 'AVL Tree Rotations',
-    subject: 'Data Structures & Algorithms'
-  });
+  const [prefillData, setPrefillData] = useState<{ topic?: string; subject?: string }>({});
 
   const handleNavigate = (route: NavRoute, prefill?: { topic?: string; subject?: string }) => {
     if (prefill) {
@@ -58,7 +55,7 @@ function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div className="min-h-screen bg-[#0B0D10] text-[#E2E8F0] flex flex-col font-sans selection:bg-[#C5A059]/30 selection:text-[#E2C78E]">
       {/* Top Navbar */}
       <Navbar
         onToggleSidebar={() => setIsMobileMenuOpen(prev => !prev)}

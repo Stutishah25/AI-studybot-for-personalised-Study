@@ -10,7 +10,8 @@ import {
   BookOpen, 
   HelpCircle, 
   TrendingDown, 
-  Check 
+  Check,
+  Plus
 } from 'lucide-react';
 
 interface RevisionRadarViewProps {
@@ -18,7 +19,7 @@ interface RevisionRadarViewProps {
 }
 
 export const RevisionRadarView: React.FC<RevisionRadarViewProps> = ({ onNavigate }) => {
-  const { revisionRadar, markTopicReviewed } = useStudy();
+  const { revisionRadar, markTopicReviewed, setIsSubjectModalOpen, subjects } = useStudy();
 
   const dueForReview = revisionRadar.filter(r => r.status === 'due-now');
   const dueSoon = revisionRadar.filter(r => r.status === 'due-soon');
@@ -39,6 +40,17 @@ export const RevisionRadarView: React.FC<RevisionRadarViewProps> = ({ onNavigate
             Ebbinghaus spaced-repetition algorithm tracks memory decay so you review right before you forget.
           </p>
         </div>
+
+        {subjects.length === 0 && (
+          <button
+            type="button"
+            onClick={() => setIsSubjectModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md shrink-0"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Add Custom Subject</span>
+          </button>
+        )}
       </div>
 
       {/* Memory Decay Diagnostics Overview */}
@@ -74,136 +86,178 @@ export const RevisionRadarView: React.FC<RevisionRadarViewProps> = ({ onNavigate
         </div>
       </div>
 
-      {/* Group 1: Due For Review (High Urgency) */}
-      <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-400 animate-pulse"></span>
-          <h3 className="text-lg font-bold text-white">
-            Due For Review (Retention decaying below 60%)
-          </h3>
-        </div>
-
-        <div className="space-y-3">
-          {dueForReview.map(item => (
-            <div
-              key={item.id}
-              className="p-4 rounded-xl bg-[#161f36] border border-rose-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4"
+      {/* When radar is totally empty, show elegant clean-state placeholder */}
+      {revisionRadar.length === 0 ? (
+        <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-8 text-center space-y-3">
+          <Radar className="w-10 h-10 text-cyan-400/80 mx-auto animate-pulse" />
+          <h3 className="text-lg font-bold text-white">Radar in Standby Mode</h3>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+            No topic memory decay detected. As you create subjects, review notes, and take active recall quizzes, NOVA's Ebbinghaus spaced-repetition algorithm will automatically calculate retention curves and schedule timely reviews here.
+          </p>
+          <div className="pt-2 flex justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSubjectModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center gap-1.5 transition-all"
             >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white">{item.topic}</span>
-                  <span className="text-xs text-slate-400">• {item.subject}</span>
-                </div>
-                <p className="text-xs text-rose-200/90 italic font-sans">
-                  "{item.reason}"
-                </p>
-                <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
-                  <span>Last reviewed {item.lastReviewedDaysAgo} days ago</span>
-                  <span>•</span>
-                  <span className="text-rose-400 font-bold">Retention: {item.retentionEstimate}%</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => markTopicReviewed(item.id)}
-                  className="px-3 py-1.5 rounded-lg bg-[#141b2e] hover:bg-[#1b2540] border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                >
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Mark Reviewed</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onNavigate('tutor', { topic: item.topic, subject: item.subject })}
-                  className="px-4 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-400 text-black font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-md"
-                >
-                  <span>Review Now</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Group 2: Due Soon (Medium Urgency) */}
-      <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-          <h3 className="text-lg font-bold text-white">Due Soon (Next 48 Hours)</h3>
-        </div>
-
-        <div className="space-y-3">
-          {dueSoon.map(item => (
-            <div
-              key={item.id}
-              className="p-4 rounded-xl bg-[#161f36] border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4"
+              <Plus className="w-4 h-4" />
+              <span>Create Subject</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate('notes')}
+              className="px-4 py-2 rounded-xl bg-[#182138] hover:bg-[#202c48] border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-all"
             >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white">{item.topic}</span>
-                  <span className="text-xs text-slate-400">• {item.subject}</span>
-                </div>
-                <p className="text-xs text-amber-200/80 font-sans">
-                  {item.reason}
-                </p>
-                <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
-                  <span>Last reviewed {item.lastReviewedDaysAgo} days ago</span>
-                  <span>•</span>
-                  <span className="text-amber-300 font-bold">Retention: {item.retentionEstimate}%</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => markTopicReviewed(item.id)}
-                  className="px-3 py-1.5 rounded-lg bg-[#141b2e] hover:bg-[#1b2540] border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                >
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Mark Reviewed</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onNavigate('recall', { topic: item.topic, subject: item.subject })}
-                  className="px-4 py-1.5 rounded-lg bg-[#1a233b] hover:bg-[#202d4b] border border-amber-500/30 text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                >
-                  <span>Quick Recall</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <span>Explore Notes Studio</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Group 1: Due For Review (High Urgency) */}
+          <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-400 animate-pulse"></span>
+              <h3 className="text-lg font-bold text-white">
+                Due For Review (Retention decaying below 60%)
+              </h3>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Group 3: Recently Reviewed */}
-      <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-          <h3 className="text-lg font-bold text-white">Recently Reviewed & Reinforced</h3>
-        </div>
+            {dueForReview.length > 0 ? (
+              <div className="space-y-3">
+                {dueForReview.map(item => (
+                  <div
+                    key={item.id}
+                    className="p-4 rounded-xl bg-[#161f36] border border-rose-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">{item.topic}</span>
+                        <span className="text-xs text-slate-400">• {item.subject}</span>
+                      </div>
+                      <p className="text-xs text-rose-200/90 italic font-sans">
+                        "{item.reason}"
+                      </p>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+                        <span>Last reviewed {item.lastReviewedDaysAgo} days ago</span>
+                        <span>•</span>
+                        <span className="text-rose-400 font-bold">Retention: {item.retentionEstimate}%</span>
+                      </div>
+                    </div>
 
-        <div className="space-y-3">
-          {recentlyReviewed.map(item => (
-            <div
-              key={item.id}
-              className="p-3.5 rounded-xl bg-[#161f36]/70 border border-slate-800 flex items-center justify-between"
-            >
-              <div>
-                <span className="text-xs font-semibold text-white block">{item.topic}</span>
-                <span className="text-[11px] text-slate-400">{item.reason}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => markTopicReviewed(item.id)}
+                        className="px-3 py-1.5 rounded-lg bg-[#141b2e] hover:bg-[#1b2540] border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Mark Reviewed</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onNavigate('tutor', { topic: item.topic, subject: item.subject })}
+                        className="px-4 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-400 text-black font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-md"
+                      >
+                        <span>Review Now</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <span className="text-xs font-mono text-emerald-400 font-bold">
-                {item.retentionEstimate}% Fresh
-              </span>
+            ) : (
+              <p className="text-xs text-slate-400">No topics currently decaying below 60%. Great job maintaining retention!</p>
+            )}
+          </div>
+
+          {/* Group 2: Due Soon (Medium Urgency) */}
+          <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+              <h3 className="text-lg font-bold text-white">Due Soon (Next 48 Hours)</h3>
             </div>
-          ))}
-        </div>
-      </div>
+
+            {dueSoon.length > 0 ? (
+              <div className="space-y-3">
+                {dueSoon.map(item => (
+                  <div
+                    key={item.id}
+                    className="p-4 rounded-xl bg-[#161f36] border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">{item.topic}</span>
+                        <span className="text-xs text-slate-400">• {item.subject}</span>
+                      </div>
+                      <p className="text-xs text-amber-200/80 font-sans">
+                        {item.reason}
+                      </p>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+                        <span>Last reviewed {item.lastReviewedDaysAgo} days ago</span>
+                        <span>•</span>
+                        <span className="text-amber-300 font-bold">Retention: {item.retentionEstimate}%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => markTopicReviewed(item.id)}
+                        className="px-3 py-1.5 rounded-lg bg-[#141b2e] hover:bg-[#1b2540] border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Mark Reviewed</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onNavigate('recall', { topic: item.topic, subject: item.subject })}
+                        className="px-4 py-1.5 rounded-lg bg-[#1a233b] hover:bg-[#202d4b] border border-amber-500/30 text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        <span>Quick Recall</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">No reviews scheduled in the next 48 hours.</p>
+            )}
+          </div>
+
+          {/* Group 3: Recently Reviewed */}
+          <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <h3 className="text-lg font-bold text-white">Recently Reviewed & Reinforced</h3>
+            </div>
+
+            {recentlyReviewed.length > 0 ? (
+              <div className="space-y-3">
+                {recentlyReviewed.map(item => (
+                  <div
+                    key={item.id}
+                    className="p-3.5 rounded-xl bg-[#161f36]/70 border border-slate-800 flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="text-xs font-semibold text-white block">{item.topic}</span>
+                      <span className="text-[11px] text-slate-400">{item.reason}</span>
+                    </div>
+                    <span className="text-xs font-mono text-emerald-400 font-bold">
+                      {item.retentionEstimate}% Fresh
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">Completed reviews and reinforced topics will appear here.</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -1,3 +1,18 @@
+export type AcademicLevel = 
+  | 'Middle School' 
+  | 'High School' 
+  | 'AP/IB' 
+  | 'Undergrad' 
+  | 'Postgrad';
+
+export type AcademicStream = 
+  | 'General' 
+  | 'Computer Science' 
+  | 'Pre-Med' 
+  | 'Business/Econ' 
+  | 'Humanities' 
+  | 'Law';
+
 export type LearningStyle = 
   | 'visual'
   | 'conceptual'
@@ -27,6 +42,8 @@ export interface StudentProfile {
   name: string;
   degree: string;
   yearSemester: string;
+  academicLevel?: AcademicLevel;
+  stream?: AcademicStream;
   subjects: string[];
   syllabus: string;
   upcomingExams: Array<{ subject: string; date: string; daysLeft: number }>;
@@ -34,18 +51,22 @@ export interface StudentProfile {
   preferredLearningStyle: LearningStyle;
   studyDifficulties: StudyDifficulty[];
   onboarded: boolean;
+  streak?: number;
+  studyHours?: number;
 }
 
 export interface Topic {
   id: string;
   name: string;
-  unitId: string;
-  subjectId: string;
+  unitId?: string;
+  subjectId?: string;
   status: 'not-started' | 'learning' | 'needs-revision' | 'mastered';
   quizScore: number; // 0-100
   confidenceScore: number; // 0-100
   lastReviewedDaysAgo: number;
   difficulty: 'easy' | 'medium' | 'hard';
+  summary?: string;
+  subtopics?: string[];
   notesCount?: number;
 }
 
@@ -58,13 +79,18 @@ export interface SubjectUnit {
 
 export interface Subject {
   id: string;
+  title?: string;
   name: string;
+  courseCode?: string;
   code: string;
+  targetExamDate?: string;
   description: string;
   progress: number;
   color: string;
   accentColor: string;
+  topics?: Topic[];
   units: SubjectUnit[];
+  created_at?: string;
 }
 
 export interface StudyPlanItem {
@@ -242,7 +268,11 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  avatar?: string;
+  academicLevel?: AcademicLevel;
+  stream?: AcademicStream;
   isDemo?: boolean;
+  created_at?: string;
   createdAt?: string;
 }
 

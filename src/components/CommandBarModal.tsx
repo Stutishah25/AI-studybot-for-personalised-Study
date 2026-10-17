@@ -62,7 +62,7 @@ export const CommandBarModal: React.FC<CommandBarModalProps> = ({ isOpen, onClos
   const quickPrompts = [
     { text: 'Explain recursion with an analogy', icon: Lightbulb, route: 'tutor' },
     { text: 'Make a mind map of DBMS', icon: Brain, route: 'mindmaps' },
-    { text: 'Quiz me on BST', icon: Target, route: 'quiz' },
+    { text: 'Quiz me on core concepts', icon: Target, route: 'quiz' },
     { text: 'Create 1-page notes on paging', icon: FileText, route: 'notes' },
     { text: 'Give me a mnemonic for OSI layers', icon: Sparkles, route: 'memory-lab' },
     { text: 'I have 40 minutes. What should I study?', icon: Clock, route: 'home' },

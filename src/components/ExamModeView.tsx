@@ -3,16 +3,16 @@ import { useStudy } from '../context/StudyContext';
 import { NavRoute } from './Sidebar';
 import { 
   Calendar, 
-  Sparkles, 
   Clock, 
-  AlertTriangle, 
+  Sparkles, 
+  Target, 
   CheckCircle2, 
-  ArrowRight, 
-  HelpCircle, 
-  FileText, 
-  Flame, 
-  Target,
-  RefreshCw
+  AlertTriangle, 
+  TrendingUp, 
+  BookOpen, 
+  ArrowRight,
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 
 interface ExamModeViewProps {
@@ -20,16 +20,27 @@ interface ExamModeViewProps {
 }
 
 export const ExamModeView: React.FC<ExamModeViewProps> = ({ onNavigate }) => {
-  const { examPlan, updateExamPlan, currentSubject, subjects } = useStudy();
+  const { examPlan, updateExamPlan, currentSubject, subjects, setIsSubjectModalOpen } = useStudy();
 
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [selectedExamIndex, setSelectedExamIndex] = useState(0);
 
-  const upcomingExams = examPlan.upcomingExams || [
-    { subject: examPlan.subject || 'Computer Networks & Architecture', date: 'In 8 days (Sept 23)', daysLeft: examPlan.daysLeft || 8 },
-    { subject: 'Data Structures & Algorithms', date: 'In 14 days (Sept 29)', daysLeft: 14 },
-    { subject: 'Database Management Systems', date: 'In 21 days (Oct 6)', daysLeft: 21 }
-  ];
+  // Derive exams from user's actual subjects or examPlan, zero mock defaults
+  const subjectExams = subjects
+    .filter(s => s.targetExamDate)
+    .map(s => {
+      const diff = new Date(s.targetExamDate).getTime() - new Date().getTime();
+      const days = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+      return {
+        subject: s.name || s.title,
+        date: `In ${days} days (${s.targetExamDate})`,
+        daysLeft: days
+      };
+    });
+
+  const upcomingExams = (examPlan.upcomingExams && examPlan.upcomingExams.length > 0)
+    ? examPlan.upcomingExams
+    : subjectExams;
 
   const activeExam = upcomingExams[selectedExamIndex] || upcomingExams[0];
 
@@ -41,6 +52,7 @@ export const ExamModeView: React.FC<ExamModeViewProps> = ({ onNavigate }) => {
   })) : []);
 
   const handleRegeneratePlan = async () => {
+    if (!activeExam) return;
     setLoadingSchedule(true);
     try {
       const res = await fetch('/api/ai/exam-plan', {
@@ -49,8 +61,8 @@ export const ExamModeView: React.FC<ExamModeViewProps> = ({ onNavigate }) => {
         body: JSON.stringify({
           subject: activeExam.subject,
           daysLeft: activeExam.daysLeft,
-          syllabus: 'Complete Units 1 to 5',
-          weakTopics: ['AVL Trees', 'Subnetting', 'Transaction Isolation Levels']
+          syllabus: 'Core Topics and Syllabus Units',
+          weakTopics: []
         })
       });
       const data = await res.json();
@@ -84,155 +96,194 @@ export const ExamModeView: React.FC<ExamModeViewProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleRegeneratePlan}
-          disabled={loadingSchedule}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:opacity-90 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loadingSchedule ? 'animate-spin' : ''}`} />
-          <span>{loadingSchedule ? 'Optimizing Schedule...' : 'Re-optimize Schedule'}</span>
-        </button>
-      </div>
-
-      {/* Countdown Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {upcomingExams.map((exam, idx) => (
-          <div
-            key={idx}
-            onClick={() => setSelectedExamIndex(idx)}
-            className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-              selectedExamIndex === idx
-                ? 'bg-gradient-to-br from-[#1b1c35] to-[#12162a] border-amber-500/60 shadow-xl shadow-amber-950/30'
-                : 'bg-[#12182a] border-slate-800 hover:border-slate-700'
-            }`}
+        {upcomingExams.length > 0 && (
+          <button
+            type="button"
+            onClick={handleRegeneratePlan}
+            disabled={loadingSchedule}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:opacity-90 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-cyan-300 font-bold uppercase">
-                {exam.date}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                {exam.daysLeft} DAYS LEFT
-              </span>
-            </div>
-
-            <h3 className="text-lg font-bold text-white tracking-tight mt-3">
-              {exam.subject}
-            </h3>
-
-            <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-              <span>Target: Grade A+</span>
-              <span className="text-amber-400 font-medium">Sprint Active 🔥</span>
-            </div>
-          </div>
-        ))}
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingSchedule ? 'animate-spin' : ''}`} />
+            <span>{loadingSchedule ? 'Optimizing Schedule...' : 'Re-optimize Schedule'}</span>
+          </button>
+        )}
       </div>
 
-      {/* Priority Topics & Day-by-Day Sprint Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Day-by-Day Plan (2 Columns) */}
-        <div className="lg:col-span-2 rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-lg font-bold text-white">
-                Sprint Schedule: {activeExam.daysLeft}-Day Roadmap
-              </h3>
-            </div>
-            <span className="text-xs font-mono text-slate-400">
-              Allocated ~2.5 hrs/day
-            </span>
+      {upcomingExams.length === 0 ? (
+        <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-8 text-center space-y-3">
+          <Calendar className="w-10 h-10 text-amber-400/80 mx-auto" />
+          <h3 className="text-lg font-bold text-white">No Upcoming Exams Scheduled</h3>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+            Set an exam target date when creating a subject, and NOVA will generate a personalized day-by-day revision roadmap.
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setIsSubjectModalOpen(true)}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:opacity-90 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md mx-auto"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Add Subject with Exam Date</span>
+            </button>
           </div>
-
-          <div className="space-y-3">
-            {dailySchedule.map(item => (
+        </div>
+      ) : (
+        <>
+          {/* Countdown Cards Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {upcomingExams.map((exam, idx) => (
               <div
-                key={item.day}
-                className="p-4 rounded-xl bg-[#161f36] border border-slate-800 space-y-2 hover:border-cyan-500/40 transition-all"
+                key={idx}
+                onClick={() => setSelectedExamIndex(idx)}
+                className={`p-5 rounded-2xl border cursor-pointer transition-all ${
+                  selectedExamIndex === idx
+                    ? 'bg-gradient-to-br from-[#1b1c35] to-[#12162a] border-amber-500/60 shadow-xl shadow-amber-950/30'
+                    : 'bg-[#12182a] border-slate-800 hover:border-slate-700'
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-md bg-violet-900/60 border border-violet-700/60 font-mono text-xs font-bold text-violet-200">
-                      Day {item.day}
-                    </span>
-                    <span className="text-sm font-bold text-white">{item.focusArea}</span>
-                  </div>
-                  <span className="text-xs text-cyan-300 font-mono">{item.targetHours}h study</span>
+                  <span className="text-xs font-mono text-cyan-300 font-bold uppercase truncate max-w-[150px]">
+                    {exam.date}
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    {exam.daysLeft} DAYS LEFT
+                  </span>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {item.tasks.map((task, tIdx) => (
-                    <span
-                      key={tIdx}
-                      className="text-xs px-2.5 py-1 rounded-lg bg-[#0e1322] border border-slate-800 text-slate-300 flex items-center gap-1.5"
-                    >
-                      <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
-                      <span>{task}</span>
-                    </span>
-                  ))}
+                <h3 className="text-lg font-bold text-white tracking-tight mt-3">
+                  {exam.subject}
+                </h3>
+
+                <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                  <span>Target: Grade A+</span>
+                  <span className="text-amber-400 font-medium">Sprint Active 🔥</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Priority Topics Classified by Weightage (1 Column) */}
-        <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-amber-400" />
-              <h3 className="text-lg font-bold text-white">Syllabus Weightage</h3>
-            </div>
-
-            <div className="space-y-2.5">
-              {examPlan.priorityTopics.map((pt, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 rounded-xl bg-[#161f36] border border-slate-800/80 flex items-center justify-between"
-                >
-                  <div>
-                    <span className="text-xs font-semibold text-white block">
-                      {pt.topic}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      Exam Weight: ~{pt.weightage}%
-                    </span>
-                  </div>
-
-                  <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
-                      pt.priority === 'high'
-                        ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                        : pt.priority === 'medium'
-                        ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                        : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                    }`}
-                  >
-                    {pt.priority}
-                  </span>
+          {/* Priority Topics & Day-by-Day Sprint Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Day-by-Day Plan (2 Columns) */}
+            <div className="lg:col-span-2 rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-lg font-bold text-white">
+                    Sprint Schedule: {activeExam?.daysLeft || 14}-Day Roadmap
+                  </h3>
                 </div>
-              ))}
+                <span className="text-xs font-mono text-slate-400">Target: 2.5 hrs/day</span>
+              </div>
+
+              {dailySchedule.length > 0 ? (
+                <div className="space-y-3">
+                  {dailySchedule.map((day, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 rounded-xl bg-[#151c30] border border-slate-800/80 space-y-2 hover:border-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            Day {day.day}
+                          </span>
+                          <span className="text-xs font-bold text-white">{day.focusArea}</span>
+                        </div>
+                        <span className="text-[11px] font-mono text-slate-400">
+                          {day.targetHours} hours planned
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 pl-2 border-l-2 border-slate-700 mt-2">
+                        {day.tasks.map((task: string, tIdx: number) => (
+                          <div key={tIdx} className="flex items-center gap-2 text-xs text-slate-300">
+                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
+                            <span>{task}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-400 rounded-xl bg-[#141b2e] border border-slate-800 space-y-2">
+                  <p className="text-xs">No roadmap generated yet for this exam.</p>
+                  <button
+                    type="button"
+                    onClick={handleRegeneratePlan}
+                    className="px-3.5 py-1.5 rounded-lg bg-amber-500 text-black text-xs font-bold"
+                  >
+                    Generate AI Sprint Plan
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* High-Yield Weightage & Priority Topics (1 Column) */}
+            <div className="rounded-2xl bg-[#12182a] border border-slate-800 p-6 space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-rose-400" />
+                    <h3 className="text-base font-bold text-white">Priority Topics</h3>
+                  </div>
+                  <span className="text-xs font-mono text-rose-400">High Weightage</span>
+                </div>
+
+                {examPlan.priorityTopics && examPlan.priorityTopics.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {examPlan.priorityTopics.map((pt, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl bg-[#151c30] border border-slate-800/80 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-white truncate max-w-[150px]">
+                            {pt.topic}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            pt.priority === 'High'
+                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          }`}>
+                            {pt.priority}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                            <span>Exam Weight: {pt.weightage}</span>
+                            <span>{pt.confidence}% confidence</span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                            <div
+                              className="h-full bg-cyan-400 rounded-full"
+                              style={{ width: `${pt.confidence}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">Topics will appear here once optimized.</p>
+                )}
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#141b2e] border border-slate-700/80 space-y-2 mt-4">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>NOVA Exam Insight</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Focusing on core foundational invariants yields the highest point-per-hour return in active exams.
+                </p>
+              </div>
             </div>
           </div>
-
-          {/* Quick Mock Test Launcher */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-violet-950/40 to-cyan-950/40 border border-cyan-500/30 space-y-2.5">
-            <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider block">
-              Exam Simulation Mock
-            </span>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Launch a timed 10-question mock test under simulated exam pressure.
-            </p>
-            <button
-              type="button"
-              onClick={() => onNavigate('quiz', { topic: activeExam.subject })}
-              className="w-full py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md"
-            >
-              <HelpCircle className="w-3.5 h-3.5" /> Start Exam Mock Test
-            </button>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 };

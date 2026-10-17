@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AuthState } from '../types';
+import { User, AuthState, AcademicLevel, AcademicStream } from '../types';
 
 interface AuthContextType extends AuthState {
   isAuthModalOpen: boolean;
@@ -7,7 +7,13 @@ interface AuthContextType extends AuthState {
   authModalView: 'login' | 'signup';
   setAuthModalView: (view: 'login' | 'signup') => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (
+    email: string, 
+    password: string, 
+    name: string, 
+    academicLevel?: AcademicLevel, 
+    stream?: AcademicStream
+  ) => Promise<{ success: boolean; error?: string }>;
   loginDemo: () => Promise<void>;
   logout: () => void;
   token: string | null;
@@ -91,12 +97,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, passwordPlain: string, name: string) => {
+  const signup = async (
+    email: string, 
+    passwordPlain: string, 
+    name: string, 
+    academicLevel?: AcademicLevel, 
+    stream?: AcademicStream
+  ) => {
     try {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: passwordPlain, name })
+        body: JSON.stringify({ 
+          email, 
+          password: passwordPlain, 
+          name,
+          academicLevel: academicLevel || 'Undergrad',
+          stream: stream || 'General'
+        })
       });
 
       const data = await res.json();

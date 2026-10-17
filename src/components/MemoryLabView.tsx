@@ -22,7 +22,7 @@ interface MemoryLabViewProps {
 }
 
 export const MemoryLabView: React.FC<MemoryLabViewProps> = ({
-  initialTopic = 'OSI 7 Layers',
+  initialTopic = '',
   onNavigate
 }) => {
   const { memoryShortcuts, addMemoryShortcut, deleteMemoryShortcut, currentSubject } = useStudy();

@@ -84,8 +84,8 @@ export const OnboardingModal: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Create subjects on backend for this user
-      const subjectsToCreate = subjectList.length > 0 ? subjectList : ['Data Structures', 'Database Systems'];
+      // 1. Create subjects on backend for this user (only if explicitly added by user)
+      const subjectsToCreate = subjectList;
       for (const subjName of subjectsToCreate) {
         await addSubject({
           name: subjName,
@@ -271,7 +271,7 @@ export const OnboardingModal: React.FC = () => {
               <div className="pt-2">
                 <span className="text-[11px] text-slate-500 block mb-2">Quick popular suggestions:</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {['Data Structures', 'Database Systems', 'Operating Systems', 'Calculus III', 'Microbiology', 'Organic Chemistry'].map(s => (
+                  {['Software Systems', 'Microeconomics', 'Organic Chemistry', 'Calculus', 'World History', 'Legal Studies'].map(s => (
                     <button
                       key={s}
                       type="button"
@@ -357,7 +357,7 @@ export const OnboardingModal: React.FC = () => {
                     type="text"
                     value={examSubject}
                     onChange={e => setExamSubject(e.target.value)}
-                    placeholder="Exam Subject (e.g. Data Structures)"
+                    placeholder="Exam Subject (e.g. Molecular Biology or Economics)"
                     className="px-3.5 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                   />
                   <input

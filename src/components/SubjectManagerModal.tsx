@@ -35,9 +35,13 @@ export const SubjectManagerModal: React.FC<SubjectManagerModalProps> = ({ isOpen
 
     setIsSubmitting(true);
     try {
+      const targetExamDate = new Date(Date.now() + 35 * 86400000).toISOString().split('T')[0];
       await addSubject({
+        title: name.trim(),
         name: name.trim(),
+        courseCode: code.trim() || `${name.slice(0, 3).toUpperCase()}101`,
         code: code.trim() || `${name.slice(0, 3).toUpperCase()}101`,
+        targetExamDate,
         description: description.trim() || `Course syllabus and study notes for ${name}.`,
         accentColor,
         color: 'indigo'

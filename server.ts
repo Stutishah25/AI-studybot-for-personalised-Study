@@ -1,10 +1,20 @@
 import express, { Request, Response } from 'express';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import authRouter from './server/routes/auth.js';
 import dataRouter from './server/routes/data.js';
+import subjectsV2Router from './server/routes/subjectsV2.js';
+import apiV2Router from './server/routes/apiV2.js';
+import {
+  buildNovaSystemInstruction,
+  SOCRATIC_TUTOR_SYSTEM_PROMPT,
+  FLASHCARD_GENERATOR_SYSTEM_PROMPT,
+  DOCUMENT_PARSING_SYSTEM_PROMPT,
+  ADAPTIVE_QUIZ_SYSTEM_PROMPT
+} from './server/prompts.js';
 
 dotenv.config();
 
@@ -16,9 +26,11 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Mount Auth and User Data Routers
+// Mount Auth, User Data, and V2 Universal Routers
+app.use('/api/v2', apiV2Router);
 app.use('/api/auth', authRouter);
 app.use('/api/user', dataRouter);
+app.use('/api/v2/subjects', subjectsV2Router);
 
 // Lazy initialize GoogleGenAI client
 let aiClient: GoogleGenAI | null = null;
@@ -48,38 +60,42 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// 1. AI Study Assistant Chat
+// 1. AI Study Assistant Chat (Socratic Tutor)
 app.post('/api/ai/chat', async (req: Request, res: Response) => {
   try {
     const { message, history, profile, subject, topic, action } = req.body;
     const ai = getAIClient();
 
-    let systemInstruction = `You are NOVA, a personal AI study companion for college students.
-Your student is ${profile?.name || 'a student'} studying ${profile?.degree || 'Engineering'}, Year/Semester: ${profile?.yearSemester || 'Year 3'}.
-Learning style: ${profile?.preferredLearningStyle || 'visual & conceptual'}.
-Study difficulties to address: ${(profile?.studyDifficulties || []).join(', ')}.
-Current Subject: ${subject || 'General Studies'}.
-Current Topic: ${topic || 'Core Concepts'}.
+    const studentCtx = {
+      name: profile?.name,
+      academicLevel: profile?.academicLevel || profile?.yearSemester || 'Undergrad',
+      stream: profile?.stream || (profile?.degree?.includes('Computer') ? 'Computer Science' : 'General'),
+      learningStyle: profile?.preferredLearningStyle || 'visual & conceptual',
+      studyDifficulties: profile?.studyDifficulties || [],
+      subject: subject || 'General Studies',
+      topic: topic || 'Core Concepts'
+    };
 
-Guidelines:
-1. Speak with calm, intelligent academic clarity. Never be generic or robotic.
-2. Adapt explanations to their learning style. If 'visual', use ASCII diagrams or structured conceptual maps. If 'analogy', give relatable real-world physical analogies.
-3. Keep responses high-yield, structured, and easy to memorize.
-4. If the student asked for a specific action (like "Explain Simply", "Give Example", "Make Notes", "Create Mind Map", "Give Shortcut", "Test Me", "Explain Like I'm 10", "Exam Answer"), follow that mode precisely.`;
+    const systemInstruction = `${buildNovaSystemInstruction(studentCtx)}
+
+SOCRATIC TUTOR INSTRUCTIONS:
+${SOCRATIC_TUTOR_SYSTEM_PROMPT}`;
 
     if (ai) {
       const prompt = `Student Message: "${message}"
-Action request (if any): "${action || 'Standard tutoring'}"
+Action request (if any): "${action || 'Standard Socratic tutoring'}"
+Context: Subject "${subject || 'General'}", Topic "${topic || 'Core'}"
+
 Respond in a structured JSON object with this shape:
 {
-  "content": "Comprehensive main response text with markdown formatting",
-  "analogy": "A short, brilliant real-world analogy explaining the core idea",
+  "content": "Comprehensive, encouraging response text with clean markdown formatting. If assisting with a problem, use Socratic guidance and provide the initial nudge without dumping full final answers.",
+  "analogy": "A short, brilliant real-world analogy explaining the core idea calibrated to their grade level",
   "coreIdea": "1-2 sentence crystal-clear takeaway",
-  "example": "A concrete technical or real-world example with code or steps if applicable",
+  "example": "A concrete technical or real-world example with code, diagrams or steps if applicable",
   "commonMistakes": ["Mistake 1 that students lose marks on", "Mistake 2"],
   "memoryShortcut": "A catchy mnemonic, acronym, or mental hook to retain this topic",
   "miniQuiz": {
-    "question": "A quick concept-check question",
+    "question": "A quick Socratic concept-check question to test understanding",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctIndex": 0,
     "explanation": "Why this option is correct"
@@ -113,38 +129,39 @@ Respond in a structured JSON object with this shape:
       }
     }
 
-    // High quality contextual fallback
+    // Dynamic contextual fallback
+    const targetTopic = topic || message || 'Core Concept';
+    const targetSubject = subject || 'your coursework';
     return res.json({
       success: true,
       data: {
-        content: `### Understanding ${topic || message}
+        content: `### Understanding ${targetTopic}
 
-When approaching **${topic || message}** in ${subject || 'your coursework'}, the fundamental goal is maintaining predictable invariants. 
+When approaching **${targetTopic}** in ${targetSubject}, the fundamental goal is breaking down the core principles and applying them systematically.
 
-#### 1. The Core Mechanism
-Think of it like balancing a high-speed elevator cable system: if one side bears too much slack or tension, a quick pivot restores equilibrium before systemic failure occurs.
+#### 1. Core Intuition
+Start by identifying the main inputs, governing rules, and standard outcomes associated with this topic.
 
 #### 2. Key Operational Principles
-- **Balanced Invariant**: Keep height difference bounded to $\\le 1$.
-- **Subtree Preservation**: In-order traversal ordering is strictly preserved during state changes.
-- **Local vs Global Cost**: Local operations take $O(1)$, ensuring aggregate paths remain bounded by $O(\\log n)$.
+- **Axiomatic Definition**: Understand the primary framework and definitions before jumping to edge cases.
+- **Systematic Transformation**: Note how conditions evolve step-by-step during problem solving.
+- **Boundary Verification**: Always test boundary inputs or extreme values.
 
-#### 3. Exam Tip
-Examiners frequently test the edge case where deletion triggers cascading updates up to the root. Always recalculate heights bottom-up!`,
-        analogy: `Imagine a playground seesaw with an automatic counterweight: whenever one child leans too far back, a gentle hinge flips the center plank so neither child hits the ground.`,
-        coreIdea: `Every operation is designed to keep tree depth at $O(\\log n)$, guaranteeing logarithmic lookup even with adversarial insertions.`,
-        example: `Inserting keys [10, 20, 30] sequentially into a naive tree produces a degenerate linked list of depth 3. With self-balancing, an RR rotation pivots 20 to the root, giving depth 2.`,
+#### 3. Socratic Prompt
+What is the first step you would take when analyzing a problem involving ${targetTopic}?`,
+        analogy: `Think of ${targetTopic} as a specialized lens: it clarifies complex interactions by isolating the primary governing rules.`,
+        coreIdea: `Mastering ${targetTopic} relies on understanding the relationship between fundamental definitions and applied scenarios in ${targetSubject}.`,
+        example: `Consider a scenario where ${targetTopic} is applied directly to solve a core problem in ${targetSubject}.`,
         commonMistakes: [
-          'Attempting a single rotation on an "elbow" shaped imbalance (LR or RL case)',
-          'Forgetting to update node heights before checking grandparent balance factors',
-          'Assuming deletion requires at most one rotation (unlike insertion, deletion can require $O(\\log n)$ rotations)'
+          'Skipping foundational definitions before analyzing multi-step scenarios',
+          'Overlooking boundary constraints and edge cases'
         ],
-        memoryShortcut: 'Straighten the elbow first, then swing the shoulder! (LR -> LL -> Balanced)',
+        memoryShortcut: 'Isolate the core rule, verify the inputs, then execute step-by-step.',
         miniQuiz: {
-          question: `What is the maximum balance factor allowed for any node in an AVL tree?`,
-          options: ['0 only', '-1, 0, or +1', '-2 to +2', 'Any positive integer'],
-          correctIndex: 1,
-          explanation: 'AVL trees enforce that for every node, |height(left) - height(right)| <= 1, meaning balance factors must be in {-1, 0, 1}.'
+          question: `What is the most effective initial approach when solving problems on ${targetTopic}?`,
+          options: ['Identify core definitions and constraints', 'Guess without checking inputs', 'Ignore boundary conditions', 'Skip intermediate steps'],
+          correctIndex: 0,
+          explanation: `In ${targetSubject}, clarifying definitions and constraints first prevents errors.`
         }
       }
     });
@@ -201,39 +218,222 @@ Return JSON:
       return res.json({ success: true, data: parsed });
     }
 
-    // Fallback notes
+    // Universally adaptive fallback notes
+    const noteSubject = subject || 'General Studies';
+    const noteTopic = topic || 'Core Topic';
     return res.json({
       success: true,
       data: {
-        title: `${topic || 'Concept'} — ${requestedType}`,
-        markdown: `# ${topic || 'Key Concept'} — High-Yield Overview
+        title: `${noteTopic} — ${requestedType}`,
+        markdown: `# ${noteTopic} — High-Yield Overview
 
 ### 1. Fundamental Principle
-In ${subject || 'Computer Science'}, **${topic || 'this concept'}** represents a foundational mechanism for optimizing resource utilization, algorithmic efficiency, and memory access predictability.
+In ${noteSubject}, **${noteTopic}** represents a foundational area of study critical for mastering core concepts and applied synthesis.
 
-### 2. Essential Definitions & Formulas
-- **Core Mechanism**: Guaranteed invariant maintained across state transitions.
-- **Time Complexity**: Average case $O(\\log n)$, Worst case $O(n)$ without balancing.
-- **Space Complexity**: Auxiliary space $O(1)$ in-place or $O(n)$ for recursion stack.
+### 2. Essential Definitions & Key Mechanisms
+- **Core Definition**: Fundamental laws and structural rules governing ${noteTopic}.
+- **Primary Mechanism**: Step-by-step process used to evaluate or solve problems.
+- **Application Context**: Where and how this concept appears in practical exercises.
 
 ### 3. Key Properties & Rules
-1. **Rule of Preservation**: Relative ordering of elements remains strictly invariant.
-2. **Boundary Conditions**: Null pointers, empty structures, and single-element bounds must be checked explicitly.
-3. **Hardware Implication**: Cache locality impacts traversal speed significantly more than theoretical constant factors.
+1. **First Principle**: Always verify the problem's given parameters and baseline conditions.
+2. **Methodological Consistency**: Apply standard analytical procedures systematically.
+3. **Synthesis**: Relate outcomes back to the overarching objectives in ${noteSubject}.
 
 ### 4. Common Exam Pitfalls
-> ⚠️ **Warning**: Always verify base cases ($n=0$ and $n=1$) and confirm whether 1-based indexing or 0-based indexing is expected by the problem statement.
+> ⚠️ **Warning**: Watch out for subtle counter-examples or boundary conditions frequently tested on exams.
 
 ### 5. Quick Recall Check
-- What is the primary trade-off between space and runtime in this structure?
-- Which scenario causes the worst-case degradation?`,
-        tags: [subject || 'CS', topic || 'Core', 'Exam Prep', 'High-Yield'],
-        summary: `Structured ${requestedType} summarizing key mechanisms, invariants, and exam traps for ${topic}.`
+- State the primary definition of ${noteTopic} in your own words.
+- What key constraint or condition must hold true when applying this concept?`,
+        tags: [noteSubject, noteTopic, 'Study Notes', 'High-Yield'],
+        summary: `Structured ${requestedType} summarizing key principles, mechanisms, and exam traps for ${noteTopic}.`
       }
     });
   } catch (error: any) {
     console.error('Error in /api/ai/notes:', error);
     res.status(500).json({ error: error.message || 'Notes generation error' });
+  }
+});
+
+// 2b. High-Yield Flashcard Generator (Active Recall Engine)
+app.post('/api/ai/flashcards', async (req: Request, res: Response) => {
+  try {
+    const { topic, subject, rawContent, count, profile } = req.body;
+    const ai = getAIClient();
+    const targetCount = Number(count) || 6;
+
+    const studentCtx = {
+      name: profile?.name,
+      academicLevel: profile?.academicLevel || profile?.yearSemester || 'Undergrad',
+      stream: profile?.stream || (profile?.degree?.includes('Computer') ? 'Computer Science' : 'General'),
+      learningStyle: profile?.preferredLearningStyle || 'visual & conceptual',
+      subject: subject || 'General Studies',
+      topic: topic || 'Core Concepts'
+    };
+
+    if (ai) {
+      const prompt = `Generate ${targetCount} high-yield, scientifically sound flashcards for "${topic}" in subject "${subject}".
+Source Material / Notes (if any): "${rawContent ? rawContent.substring(0, 2000) : 'Standard academic curriculum'}"
+
+Follow FLASHCARD PRINCIPLES:
+${FLASHCARD_GENERATOR_SYSTEM_PROMPT}
+
+Academic Context: ${studentCtx.academicLevel} in ${studentCtx.stream}.
+
+Return JSON:
+{
+  "flashcards": [
+    {
+      "id": "fc-1",
+      "front": "Clear, precise question, mechanism test, or prompt",
+      "back": "Definitive, high-clarity explanation or answer",
+      "hint": "Optional mental trigger or initial nudge",
+      "mnemonic": "Catchy acronym or memory hook",
+      "difficulty": "easy" | "medium" | "hard"
+    }
+  ]
+}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          systemInstruction: buildNovaSystemInstruction(studentCtx),
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const parsed = JSON.parse(response.text || '{}');
+      return res.json({ success: true, data: parsed.flashcards || [] });
+    }
+
+    // Dynamic contextual fallback flashcards
+    const cardTopic = topic || 'Key Concept';
+    const cardSubj = subject || 'Coursework';
+    return res.json({
+      success: true,
+      data: [
+        {
+          id: 'fc-1',
+          front: `What is the core definition of ${cardTopic} in ${cardSubj}?`,
+          back: `The foundational principles and essential properties that characterize ${cardTopic}.`,
+          hint: `Recall the primary definitions and scope in ${cardSubj}.`,
+          mnemonic: 'Define, Analyze, Apply',
+          difficulty: 'easy'
+        },
+        {
+          id: 'fc-2',
+          front: `How does ${cardTopic} behave under boundary or edge-case conditions?`,
+          back: `Boundary constraints must be explicitly tested to prevent unexpected degradation or invalid state.`,
+          hint: 'Think about extreme or limiting inputs.',
+          mnemonic: 'Check boundaries first',
+          difficulty: 'medium'
+        },
+        {
+          id: 'fc-3',
+          front: `What common misconception should you avoid when analyzing ${cardTopic}?`,
+          back: `Assuming standard conditions apply universally without verifying prerequisites and assumptions.`,
+          hint: 'Beware false assumptions.',
+          mnemonic: 'Validate premises',
+          difficulty: 'hard'
+        }
+      ]
+    });
+  } catch (error: any) {
+    console.error('Error in /api/ai/flashcards:', error);
+    res.status(500).json({ error: error.message || 'Flashcard generation error' });
+  }
+});
+
+// 2c. Document & Notes Parsing Engine
+app.post('/api/ai/parse-document', async (req: Request, res: Response) => {
+  try {
+    const { documentText, fileName, subject, profile } = req.body;
+    if (!documentText) {
+      return res.status(400).json({ error: 'Document text is required.' });
+    }
+
+    const ai = getAIClient();
+    const studentCtx = {
+      name: profile?.name,
+      academicLevel: profile?.academicLevel || profile?.yearSemester || 'Undergrad',
+      stream: profile?.stream || 'General',
+      subject: subject || 'General Studies'
+    };
+
+    if (ai) {
+      const prompt = `Parse and extract high-yield academic structure from this document ("${fileName || 'Uploaded Notes'}"):
+Document Content:
+"""${documentText.substring(0, 5000)}"""
+
+DOCUMENT PARSING DIRECTIVES:
+${DOCUMENT_PARSING_SYSTEM_PROMPT}
+
+Student Academic Level: ${studentCtx.academicLevel}, Stream: ${studentCtx.stream}.
+
+Return JSON:
+{
+  "title": "Clean, descriptive academic title",
+  "executiveSummary": "1-2 sentence core thesis or executive summary",
+  "keyConcepts": [
+    {
+      "name": "Concept name",
+      "definition": "Clear, precise definition",
+      "examRelevance": "Why examiners focus on this",
+      "difficulty": "easy" | "medium" | "hard"
+    }
+  ],
+  "suggestedTopics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4"],
+  "studyQuestions": [
+    "Thought-provoking Socratic question 1",
+    "Thought-provoking Socratic question 2"
+  ]
+}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          systemInstruction: buildNovaSystemInstruction(studentCtx),
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const parsed = JSON.parse(response.text || '{}');
+      return res.json({ success: true, data: parsed });
+    }
+
+    // Fallback document parsing
+    return res.json({
+      success: true,
+      data: {
+        title: `${fileName || 'Study Material'} — Parsed Overview`,
+        executiveSummary: `Structured extraction covering fundamental definitions, core theoretical invariants, and exam-critical nuances.`,
+        keyConcepts: [
+          {
+            name: 'Primary Invariant',
+            definition: 'Guaranteed property preserved across all valid states and operations.',
+            examRelevance: 'Common source of boundary-case questions on exams.',
+            difficulty: 'medium'
+          },
+          {
+            name: 'Operational Complexity',
+            definition: 'Upper bound on runtime and auxiliary memory consumption.',
+            examRelevance: 'Examiners test worst-case vs average-case distinctions.',
+            difficulty: 'easy'
+          }
+        ],
+        suggestedTopics: ['Core Foundations', 'Mechanics & Proofs', 'Applied Problem Solving'],
+        studyQuestions: [
+          'What happens to the system state if boundary constraints are violated?',
+          'Which trade-offs make this approach preferable to simpler alternatives?'
+        ]
+      }
+    });
+  } catch (error: any) {
+    console.error('Error in /api/ai/parse-document:', error);
+    res.status(500).json({ error: error.message || 'Document parsing error' });
   }
 });
 
@@ -271,78 +471,80 @@ Return JSON:
       return res.json({ success: true, data: parsed.root || parsed });
     }
 
-    // Fallback mind map
+    // Dynamically adaptive fallback mind map
+    const mapTopic = topic || 'Subject Concepts';
+    const mapSubj = subject || 'Coursework';
     return res.json({
       success: true,
       data: {
         id: `mm-${Date.now()}`,
-        label: topic || 'System Architecture',
-        description: `Comprehensive hierarchical breakdown of ${topic || 'this subject domain'}.`,
+        label: mapTopic,
+        description: `Comprehensive hierarchical breakdown of ${mapTopic} in ${mapSubj}.`,
         color: '#818cf8',
         children: [
           {
             id: 'node-core-1',
-            label: 'Architectural Foundations',
-            description: 'Underlying hardware and abstraction layers.',
+            label: 'Foundations & Definitions',
+            description: `Core principles and baseline terminology of ${mapTopic}.`,
             color: '#38bdf8',
-            keyPoints: ['Layered isolation model', 'Hardware abstraction layer (HAL)', 'Privileged kernel space vs user space'],
-            relatedConcepts: ['System Calls', 'Interrupt Vectors'],
+            keyPoints: ['Basic definitions', 'Fundamental taxonomy', 'Scope and assumptions'],
+            relatedConcepts: ['Prerequisites', 'Terminology'],
             children: [
               {
                 id: 'sub-1a',
-                label: 'Kernel vs User Mode',
-                description: 'Dual-mode CPU operation enforcing protection domains.',
-                keyPoints: ['Mode bit flip on trap', 'Direct hardware access restricted']
+                label: 'Core Definitions',
+                description: 'Essential terminology and properties.',
+                keyPoints: ['Standard definitions', 'Boundary conditions']
               },
               {
                 id: 'sub-1b',
-                label: 'System Call Handling',
-                description: 'Programmatic interface to operating services.',
-                keyPoints: ['Trap instruction execution', 'Register argument passing']
+                label: 'Underlying Invariants',
+                description: 'Constants and invariants that must hold.',
+                keyPoints: ['Structural invariants', 'Theoretical guarantees']
               }
             ]
           },
           {
             id: 'node-core-2',
-            label: 'Resource Scheduling',
-            description: 'Fair and low-latency allocation of processing units.',
+            label: 'Mechanisms & Methodology',
+            description: `Operational rules and problem-solving methods for ${mapTopic}.`,
             color: '#a78bfa',
-            keyPoints: ['Preemptive versus cooperative switching', 'Starvation avoidance and aging', 'Throughput vs latency trade-offs'],
-            relatedConcepts: ['Round Robin', 'Priority Inversion'],
+            keyPoints: ['Analytical frameworks', 'Step-by-step procedures', 'Efficiency and trade-offs'],
+            relatedConcepts: ['Analysis', 'Execution'],
             children: [
               {
                 id: 'sub-2a',
-                label: 'State Lifecycle',
-                description: 'Transition path across New, Ready, Running, Waiting, Terminated.',
-                keyPoints: ['PCB tracking', 'Context switch overhead']
+                label: 'Workflows & Procedures',
+                description: 'Systematic approach to problem solving.',
+                keyPoints: ['Standard sequence', 'Verification checks']
               },
               {
                 id: 'sub-2b',
-                label: 'Queue Disciplines',
-                description: 'Multilevel feedback mechanisms.',
-                keyPoints: ['I/O bound priority boosting', 'Time slice quantum sizing']
+                label: 'Edge Cases & Exceptions',
+                description: 'Non-standard conditions and limits.',
+                keyPoints: ['Extreme parameters', 'Alternative pathways']
               }
             ]
           },
           {
             id: 'node-core-3',
-            label: 'Memory & Cache Management',
-            description: 'Translation of logical address spaces into physical frames.',
+            label: 'Synthesis & Exam Edge Cases',
+            description: `Real-world applications and common exam pitfalls for ${mapTopic}.`,
             color: '#34d399',
-            keyPoints: ['Paging eliminates external fragmentation', 'TLB speedup factor', 'Demand paging page fault handling'],
-            relatedConcepts: ['Virtual Memory', 'Thrashing'],
+            keyPoints: ['Common student misconceptions', 'Cross-topic synthesis', 'Exam question patterns'],
+            relatedConcepts: ['Practice Problems', 'Case Studies'],
             children: [
               {
                 id: 'sub-3a',
-                label: 'Address Translation',
-                description: 'Hardware MMU page table walk.',
-                keyPoints: ['Multi-level page tables', 'Offset consistency']
+                label: 'Common Traps',
+                description: 'Frequent errors tested on exams.',
+                keyPoints: ['Premise verification', 'Subtle pitfalls']
               },
               {
                 id: 'sub-3b',
-                label: 'Eviction Algorithms',
-                description: 'Policies for selecting victim frames.',
-                keyPoints: ['LRU approximation via clock bit', 'Belady anomaly avoidance']
+                label: 'Applied Synthesis',
+                description: 'Connecting theory to complex exercises.',
+                keyPoints: ['Case studies', 'Comprehensive evaluation']
               }
             ]
           }
@@ -562,50 +764,67 @@ Return JSON:
       return res.json({ success: true, data: parsed.questions || [] });
     }
 
-    // Fallback adaptive questions
+    // Fallback adaptive questions generated dynamically for the requested topic
+    const targetTopic = topic || 'Core Principles';
+    const targetSubject = subject || 'Coursework';
     return res.json({
       success: true,
       data: [
         {
           id: 'q1',
-          question: `What is the worst-case time complexity for searching a key in an AVL tree containing 'n' nodes?`,
-          options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
-          correctIndex: 1,
-          explanation: 'Because AVL trees strictly maintain a height bounded by ~1.44 log2(n), the worst-case search path is strictly logarithmic O(log n).',
+          question: `What is the foundational definition and primary role of ${targetTopic} in ${targetSubject}?`,
+          options: [
+            `It defines the core governing invariants and relationships governing the system`,
+            `It serves only as a temporary decorative placeholder`,
+            `It reverses all established principles without verification`,
+            `It has no relation to the syllabus or practical applications`
+          ],
+          correctIndex: 0,
+          explanation: `In ${targetSubject}, understanding ${targetTopic} provides the conceptual framework necessary to analyze and predict behavior accurately.`,
           difficulty: difficulty || 'Medium',
-          topic: topic || 'AVL Trees'
+          topic: targetTopic
         },
         {
           id: 'q2',
-          question: `Which rotation is required when a new key is inserted into the left subtree of the right child of an unbalanced node?`,
-          options: ['Left-Left (LL) Rotation', 'Right-Right (RR) Rotation', 'Right-Left (RL) Double Rotation', 'Left-Right (LR) Double Rotation'],
-          correctIndex: 2,
-          explanation: 'An insertion into the left subtree of a right child causes a Right-Left (RL) imbalance, requiring a right rotation on the child followed by a left rotation on the grandparent.',
+          question: `How should boundary conditions or limiting cases be approached when analyzing ${targetTopic}?`,
+          options: [
+            `Ignore edge cases and assume nominal values always hold`,
+            `Systematically test minimum, maximum, and extreme parameters against governing constraints`,
+            `Skip verification to save computation time`,
+            `Assume boundaries are undefined in all scenarios`
+          ],
+          correctIndex: 1,
+          explanation: `Robust analysis of ${targetTopic} requires evaluating boundary conditions to verify stability and prevent unexpected failures.`,
           difficulty: difficulty || 'Medium',
-          topic: topic || 'AVL Trees'
+          topic: targetTopic
         },
         {
           id: 'q3',
-          question: `What is the maximum number of rotations needed during an insertion in an AVL tree to restore balance?`,
-          options: ['At most 1 or 2 rotations (single or double rotation)', 'O(log n) rotations', 'O(n) rotations', 'Zero rotations'],
+          question: `What is a common pitfall students encounter when answering exam questions on ${targetTopic}?`,
+          options: [
+            `Overlooking prerequisite assumptions before applying standard formulas or theorems`,
+            `Reading the problem statement carefully`,
+            `Verifying unit consistency and dimensions`,
+            `Applying step-by-step reasoning`
+          ],
           correctIndex: 0,
-          explanation: 'A single insertion in an AVL tree requires at most one single rotation or one double rotation to restore the balance factor invariant for the entire tree.',
+          explanation: `A frequent trap in ${targetSubject} is applying a general rule to ${targetTopic} without validating that all prerequisite criteria are met.`,
           difficulty: difficulty || 'Hard',
-          topic: topic || 'AVL Trees'
+          topic: targetTopic
         },
         {
           id: 'q4',
-          question: `If an AVL node has a balance factor of +2, what does this indicate about its subtrees?`,
+          question: `When synthesizing a solution involving ${targetTopic}, what is the recommended first step?`,
           options: [
-            'The right subtree is 2 levels taller than the left subtree',
-            'The left subtree is 2 levels taller than the right subtree',
-            'Both subtrees have equal height',
-            'The node is a leaf node'
+            `Jump directly to arbitrary calculations without defining variables`,
+            `Clarify known parameters, constraints, and the governing model`,
+            `Discard the given problem constraints`,
+            `Assume the answer is trivial`
           ],
           correctIndex: 1,
-          explanation: 'Balance factor is standardly defined as Height(Left) - Height(Right). A value of +2 indicates the left subtree is two levels taller than the right subtree.',
+          explanation: `Structuring the known parameters and constraints first provides clarity and prevents systematic errors when working with ${targetTopic}.`,
           difficulty: difficulty || 'Easy',
-          topic: topic || 'AVL Trees'
+          topic: targetTopic
         }
       ]
     });
@@ -748,10 +967,17 @@ Return JSON:
 
 // Vite middleware setup
 async function startServer() {
+  const httpServer = http.createServer(app);
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: {
+          server: httpServer,
+        },
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -763,7 +989,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`NOVA Study Companion server running on http://0.0.0.0:${PORT}`);
   });
 }

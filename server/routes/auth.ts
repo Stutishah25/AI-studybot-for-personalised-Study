@@ -1,13 +1,14 @@
 import { Router, Response } from 'express';
 import { db } from '../db.js';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
+import { AcademicLevel, AcademicStream } from '../prompts.js';
 
 const router = Router();
 
-// Sign Up
-router.post('/signup', async (req, res: Response) => {
+// Sign Up & Register
+const handleSignUp = async (req: any, res: Response) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, academicLevel, stream } = req.body;
     if (!email || !email.includes('@')) {
       return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
@@ -18,7 +19,15 @@ router.post('/signup', async (req, res: Response) => {
       return res.status(400).json({ error: 'Please enter your name.' });
     }
 
-    const newUser = db.createUser(email, password, name, false);
+    const validAcademicLevel: AcademicLevel = ['Middle School', 'High School', 'AP/IB', 'Undergrad', 'Postgrad'].includes(academicLevel)
+      ? academicLevel
+      : 'Undergrad';
+
+    const validStream: AcademicStream = ['General', 'Computer Science', 'Pre-Med', 'Business/Econ', 'Humanities', 'Law'].includes(stream)
+      ? stream
+      : 'General';
+
+    const newUser = db.createUser(email, password, name, validAcademicLevel, validStream, false);
     const token = db.generateToken(newUser);
     const profile = db.getUserProfile(newUser.id);
 
@@ -29,8 +38,11 @@ router.post('/signup', async (req, res: Response) => {
         id: newUser.id,
         email: newUser.email,
         name: newUser.name,
+        academicLevel: newUser.academicLevel,
+        stream: newUser.stream,
         isDemo: false,
-        createdAt: newUser.createdAt
+        created_at: newUser.created_at,
+        createdAt: newUser.created_at
       },
       profile
     });
@@ -38,7 +50,10 @@ router.post('/signup', async (req, res: Response) => {
     console.error('Signup error:', err);
     return res.status(400).json({ error: err.message || 'Could not create account.' });
   }
-});
+};
+
+router.post('/signup', handleSignUp);
+router.post('/register', handleSignUp);
 
 // Login
 router.post('/login', async (req, res: Response) => {
@@ -68,8 +83,11 @@ router.post('/login', async (req, res: Response) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        academicLevel: user.academicLevel || 'Undergrad',
+        stream: user.stream || 'General',
         isDemo: Boolean(user.isDemo),
-        createdAt: user.createdAt
+        created_at: user.created_at || user.createdAt,
+        createdAt: user.created_at || user.createdAt
       },
       profile
     });
@@ -97,8 +115,11 @@ router.post('/demo-login', async (req, res: Response) => {
         id: demoUser.id,
         email: demoUser.email,
         name: demoUser.name,
+        academicLevel: demoUser.academicLevel || 'Undergrad',
+        stream: demoUser.stream || 'Computer Science',
         isDemo: true,
-        createdAt: demoUser.createdAt
+        created_at: demoUser.created_at || demoUser.createdAt,
+        createdAt: demoUser.created_at || demoUser.createdAt
       },
       profile
     });
@@ -124,8 +145,11 @@ router.get('/me', requireAuth, async (req: AuthenticatedRequest, res: Response) 
         id: user.id,
         email: user.email,
         name: user.name,
+        academicLevel: user.academicLevel || 'Undergrad',
+        stream: user.stream || 'General',
         isDemo: Boolean(user.isDemo),
-        createdAt: user.createdAt
+        created_at: user.created_at || user.createdAt,
+        createdAt: user.created_at || user.createdAt
       },
       profile
     });

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { initialSubjects, initialNotes, initialMindMap, initialMemoryShortcuts, initialRevisionRadar, initialExamPlan, initialStudyPlan } from '../src/demoData.js';
+import { AcademicLevel, AcademicStream } from './prompts.js';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DATA_DIR)) {
@@ -11,13 +11,56 @@ if (!fs.existsSync(DATA_DIR)) {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nova-jwt-secret-session-key-production-change';
 
+/**
+ * User Schema:
+ * id, name, email, passwordHash, academicLevel, stream, created_at
+ */
 export interface UserRecord {
   id: string;
+  name: string;
   email: string;
   passwordHash: string;
-  name: string;
+  academicLevel: AcademicLevel;
+  stream: AcademicStream;
   isDemo?: boolean;
-  createdAt: string;
+  created_at: string;
+  createdAt?: string; // backwards compatibility alias
+}
+
+export interface TopicRecord {
+  id: string;
+  name: string;
+  unitId?: string;
+  subjectId?: string;
+  status?: 'not-started' | 'learning' | 'needs-revision' | 'mastered';
+  quizScore?: number;
+  confidenceScore?: number;
+  lastReviewedDaysAgo?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  summary?: string;
+  notesCount?: number;
+}
+
+/**
+ * Subject Schema:
+ * id, userId, title, courseCode, targetExamDate, topics (JSON array), progress (0-100), created_at
+ */
+export interface SubjectRecord {
+  id: string;
+  userId: string;
+  title: string;
+  name?: string; // backwards compatibility alias with title
+  courseCode: string;
+  code?: string; // backwards compatibility alias with courseCode
+  targetExamDate: string;
+  topics: TopicRecord[];
+  progress: number; // 0-100
+  created_at: string;
+  // Visual presentation fields
+  description?: string;
+  color?: string;
+  accentColor?: string;
+  units?: any[]; // hierarchical units mapping
 }
 
 export interface UserProfileRecord {
@@ -26,6 +69,8 @@ export interface UserProfileRecord {
   degree: string;
   college?: string;
   yearSemester: string;
+  academicLevel: AcademicLevel;
+  stream: AcademicStream;
   dailyStudyTime: string;
   preferredLearningStyle: string;
   studyDifficulties: string[];
@@ -35,10 +80,11 @@ export interface UserProfileRecord {
   updatedAt: string;
 }
 
-// Low-overhead file-backed store with memory cache
+// Low-overhead file-backed store with guaranteed multi-tenant isolation and 100% clean canvas
 class DatabaseStore {
   private usersFile = path.join(DATA_DIR, 'users.json');
-  private userStorePath(userId: string, collection: string) {
+
+  public userStorePath(userId: string, collection: string): string {
     const userDir = path.join(DATA_DIR, 'users_data', userId);
     if (!fs.existsSync(userDir)) {
       fs.mkdirSync(userDir, { recursive: true });
@@ -74,50 +120,83 @@ class DatabaseStore {
     }
   }
 
-  // Seed demo student user
+  /**
+   * Initializes completely empty JSON files for any user account.
+   * Ensures 100% clean canvas:
+   *   subjects.json -> []
+   *   notes.json -> []
+   *   flashcards.json -> []
+   *   study_plans.json -> []
+   *   radar.json -> { topics: [], weakSpots: [] }
+   */
+  public initUserStorage(userId: string, overwrite = false): void {
+    const filesToInit: Array<{ name: string; defaultContent: any }> = [
+      { name: 'subjects', defaultContent: [] },
+      { name: 'notes', defaultContent: [] },
+      { name: 'flashcards', defaultContent: [] },
+      { name: 'study_plans', defaultContent: [] },
+      { name: 'study_plan', defaultContent: [] },
+      { name: 'radar', defaultContent: { topics: [], weakSpots: [] } },
+      { name: 'revision_radar', defaultContent: [] },
+      { name: 'mind_maps', defaultContent: {} },
+      { name: 'memory_shortcuts', defaultContent: [] },
+      { name: 'exam_plan', defaultContent: { upcomingExams: [], dailySchedule: [], priorityTopics: [] } }
+    ];
+
+    for (const item of filesToInit) {
+      const filePath = this.userStorePath(userId, item.name);
+      if (overwrite || !fs.existsSync(filePath)) {
+        this.writeJson(filePath, item.defaultContent);
+      }
+    }
+  }
+
+  // Initialize demo user with 100% clean canvas (zero mock data)
   private initDemoUser() {
     const users = this.getUsers();
     const demoEmail = 'demo@nova.study';
     let demoUser = users.find(u => u.email.toLowerCase() === demoEmail.toLowerCase());
 
+    const now = new Date().toISOString();
     if (!demoUser) {
       const salt = bcrypt.genSaltSync(10);
       const hash = bcrypt.hashSync('student123', salt);
       demoUser = {
         id: 'demo-student-id',
+        name: 'Stuti (Demo)',
         email: demoEmail,
         passwordHash: hash,
-        name: 'Stuti (Demo)',
+        academicLevel: 'Undergrad',
+        stream: 'Computer Science',
         isDemo: true,
-        createdAt: new Date().toISOString()
+        created_at: now,
+        createdAt: now
       };
       users.push(demoUser);
       this.writeJson(this.usersFile, users);
-
-      // Seed initial demo profile & data
-      const demoProfile: UserProfileRecord = {
-        userId: demoUser.id,
-        name: 'Stuti',
-        degree: 'B.Tech in Computer Engineering',
-        college: 'Sardar Patel Institute of Technology',
-        yearSemester: '3rd Year • Semester 6',
-        dailyStudyTime: '3-4 hours',
-        preferredLearningStyle: 'visual',
-        studyDifficulties: ['remembering-info', 'solving-problems', 'revising-before-exams'],
-        onboarded: true,
-        streak: 7,
-        studyHours: 42.5,
-        updatedAt: new Date().toISOString()
-      };
-      this.saveUserProfile(demoUser.id, demoProfile);
-      this.saveUserCollection(demoUser.id, 'subjects', initialSubjects);
-      this.saveUserCollection(demoUser.id, 'notes', initialNotes);
-      this.saveUserCollection(demoUser.id, 'mind_maps', { default: initialMindMap });
-      this.saveUserCollection(demoUser.id, 'memory_shortcuts', initialMemoryShortcuts);
-      this.saveUserCollection(demoUser.id, 'revision_radar', initialRevisionRadar);
-      this.saveUserCollection(demoUser.id, 'exam_plan', initialExamPlan);
-      this.saveUserCollection(demoUser.id, 'study_plan', initialStudyPlan);
     }
+
+    // Always enforce clean canvas for demo user
+    const demoProfile: UserProfileRecord = {
+      userId: demoUser.id,
+      name: 'Stuti',
+      degree: 'Computer Science (Undergrad)',
+      college: '',
+      yearSemester: 'Undergrad',
+      academicLevel: 'Undergrad',
+      stream: 'Computer Science',
+      dailyStudyTime: '2-3 hours',
+      preferredLearningStyle: 'visual',
+      studyDifficulties: [],
+      onboarded: true,
+      streak: 0,
+      studyHours: 0,
+      updatedAt: now
+    };
+    this.saveUserProfile(demoUser.id, demoProfile);
+
+    // Initialize clean canvas files
+    this.initUserStorage(demoUser.id, true);
   }
 
   // Users management
@@ -135,7 +214,14 @@ class DatabaseStore {
     return users.find(u => u.id === id);
   }
 
-  public createUser(email: string, passwordPlain: string, name: string, isDemo = false): UserRecord {
+  public createUser(
+    email: string,
+    passwordPlain: string,
+    name: string,
+    academicLevel: AcademicLevel = 'Undergrad',
+    stream: AcademicStream = 'General',
+    isDemo = false
+  ): UserRecord {
     const users = this.getUsers();
     const existing = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
     if (existing) {
@@ -144,34 +230,43 @@ class DatabaseStore {
 
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(passwordPlain, salt);
+    const now = new Date().toISOString();
     const newUser: UserRecord = {
       id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      name: name.trim(),
       email: email.trim().toLowerCase(),
       passwordHash,
-      name: name.trim(),
+      academicLevel,
+      stream,
       isDemo,
-      createdAt: new Date().toISOString()
+      created_at: now,
+      createdAt: now
     };
 
     users.push(newUser);
     this.writeJson(this.usersFile, users);
 
-    // Initial blank profile for new non-demo user
+    // Initial clean profile
     const profile: UserProfileRecord = {
       userId: newUser.id,
       name: newUser.name,
-      degree: '',
+      degree: stream === 'General' ? academicLevel : `${stream} (${academicLevel})`,
       college: '',
-      yearSemester: '',
+      yearSemester: academicLevel,
+      academicLevel,
+      stream,
       dailyStudyTime: '2-3 hours',
       preferredLearningStyle: 'visual',
       studyDifficulties: [],
-      onboarded: isDemo ? true : false,
-      streak: 1,
+      onboarded: true,
+      streak: 0,
       studyHours: 0,
-      updatedAt: new Date().toISOString()
+      updatedAt: now
     };
     this.saveUserProfile(newUser.id, profile);
+
+    // Initialize 100% clean canvas storage files for this new user
+    this.initUserStorage(newUser.id, true);
 
     return newUser;
   }
@@ -186,6 +281,8 @@ class DatabaseStore {
         id: user.id,
         email: user.email,
         name: user.name,
+        academicLevel: user.academicLevel,
+        stream: user.stream,
         isDemo: Boolean(user.isDemo)
       },
       JWT_SECRET,
@@ -193,7 +290,14 @@ class DatabaseStore {
     );
   }
 
-  public verifyToken(token: string): { id: string; email: string; name: string; isDemo: boolean } | null {
+  public verifyToken(token: string): { 
+    id: string; 
+    email: string; 
+    name: string; 
+    academicLevel?: AcademicLevel; 
+    stream?: AcademicStream; 
+    isDemo: boolean 
+  } | null {
     try {
       return jwt.verify(token, JWT_SECRET) as any;
     } catch (e) {
@@ -208,14 +312,16 @@ class DatabaseStore {
     const defaultProfile: UserProfileRecord = {
       userId,
       name: user?.name || 'Student',
-      degree: '',
+      degree: user?.stream ? `${user.stream} (${user.academicLevel})` : '',
       college: '',
-      yearSemester: '',
+      yearSemester: user?.academicLevel || 'Undergrad',
+      academicLevel: user?.academicLevel || 'Undergrad',
+      stream: user?.stream || 'General',
       dailyStudyTime: '2-3 hours',
       preferredLearningStyle: 'visual',
       studyDifficulties: [],
-      onboarded: false,
-      streak: 1,
+      onboarded: true,
+      streak: 0,
       studyHours: 0,
       updatedAt: new Date().toISOString()
     };
@@ -235,7 +341,105 @@ class DatabaseStore {
     return updated;
   }
 
-  // Generic user collection storage (guaranteed user isolation)
+  // -----------------------------------------------------------------
+  // SUBJECT CRUD & MULTI-TENANT QUERIES
+  // -----------------------------------------------------------------
+  public getUserSubjects(userId: string): SubjectRecord[] {
+    const subjects = this.getUserCollection<SubjectRecord[]>(userId, 'subjects', []);
+    if (!Array.isArray(subjects)) {
+      return [];
+    }
+    // Normalize aliases for compatibility with legacy and v2 schemas
+    return subjects.map(s => ({
+      ...s,
+      userId,
+      name: s.name || s.title || 'Untitled Subject',
+      title: s.title || s.name || 'Untitled Subject',
+      code: s.code || s.courseCode || 'SUB101',
+      courseCode: s.courseCode || s.code || 'SUB101',
+      targetExamDate: s.targetExamDate || '2026-12-15',
+      topics: s.topics || (s.units ? s.units.flatMap((u: any) => u.topics || []) : []),
+      progress: typeof s.progress === 'number' ? s.progress : 0,
+      created_at: s.created_at || new Date().toISOString()
+    }));
+  }
+
+  public saveUserSubjects(userId: string, subjects: SubjectRecord[]): void {
+    this.saveUserCollection(userId, 'subjects', subjects);
+  }
+
+  public addSubject(userId: string, subjectData: Partial<SubjectRecord>): SubjectRecord {
+    const subjects = this.getUserSubjects(userId);
+    const title = subjectData.title || subjectData.name || 'New Subject';
+    const courseCode = subjectData.courseCode || subjectData.code || `SUB${subjects.length + 1}`;
+    const targetExamDate = subjectData.targetExamDate || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    const now = new Date().toISOString();
+
+    const topics: TopicRecord[] = subjectData.topics || [
+      {
+        id: `t_${Date.now()}_1`,
+        name: `${title} Foundations`,
+        status: 'not-started',
+        quizScore: 0,
+        confidenceScore: 30,
+        difficulty: 'medium',
+        lastReviewedDaysAgo: 0
+      }
+    ];
+
+    const units = subjectData.units || [
+      {
+        id: `u_${Date.now()}_1`,
+        unitNumber: 1,
+        title: 'Unit 1: Core Curriculum',
+        topics
+      }
+    ];
+
+    const newSubject: SubjectRecord = {
+      id: subjectData.id || `subj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userId,
+      title,
+      name: title,
+      courseCode,
+      code: courseCode,
+      targetExamDate,
+      topics,
+      units,
+      progress: subjectData.progress || 0,
+      description: subjectData.description || `Comprehensive study curriculum for ${title}.`,
+      color: subjectData.color || 'indigo',
+      accentColor: subjectData.accentColor || '#818cf8',
+      created_at: now
+    };
+
+    subjects.push(newSubject);
+    this.saveUserSubjects(userId, subjects);
+
+    // Update profile subjects cache
+    const profile = this.getUserProfile(userId);
+    const existingSubjectNames = subjects.map(s => s.title);
+    this.saveUserProfile(userId, { ...profile, subjects: existingSubjectNames } as any);
+
+    return newSubject;
+  }
+
+  public deleteSubject(userId: string, subjectId: string): boolean {
+    const subjects = this.getUserSubjects(userId);
+    const filtered = subjects.filter(s => s.id !== subjectId);
+    if (filtered.length === subjects.length) {
+      return false;
+    }
+    this.saveUserSubjects(userId, filtered);
+
+    // Update profile
+    const profile = this.getUserProfile(userId);
+    const existingSubjectNames = filtered.map(s => s.title);
+    this.saveUserProfile(userId, { ...profile, subjects: existingSubjectNames } as any);
+    return true;
+  }
+
+  // Generic user collection storage (guaranteed user isolation, never falling back to other users)
   public getUserCollection<T>(userId: string, collection: string, fallback: T): T {
     const p = this.userStorePath(userId, collection);
     return this.readJson<T>(p, fallback);

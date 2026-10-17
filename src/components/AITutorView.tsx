@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStudy } from '../context/StudyContext';
+import { useAuth } from '../context/AuthContext';
 import { NavRoute } from './Sidebar';
 import { TutorActionType, TutorResponsePayload } from '../types';
 import { 
@@ -29,7 +30,7 @@ interface AITutorViewProps {
 }
 
 export const AITutorView: React.FC<AITutorViewProps> = ({
-  initialTopic = 'AVL Tree Rotations',
+  initialTopic = '',
   initialSubject,
   onNavigate
 }) => {
@@ -44,7 +45,9 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
     saveMindMap
   } = useStudy();
 
-  const [topic, setTopic] = useState(initialTopic);
+  const { user } = useAuth();
+
+  const [topic, setTopic] = useState(initialTopic || currentSubject?.topics?.[0]?.name || '');
   const [selectedAction, setSelectedAction] = useState<TutorActionType>('explain-simply');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -55,31 +58,16 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
   const [selectedQuizOption, setSelectedQuizOption] = useState<number | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
 
-  // Initial rich sample response so it never looks empty
-  const [tutorData, setTutorData] = useState<TutorResponsePayload>({
-    topic: 'AVL Tree Rotations',
-    action: 'explain-simply',
-    explanation:
-      'An AVL tree is a self-balancing Binary Search Tree where the height difference (Balance Factor) between left and right subtrees cannot exceed 1. When an insertion or deletion throws this balance off (Balance Factor becomes +2 or -2), the tree restores balance immediately using rotations: Left Rotation (LL), Right Rotation (RR), Left-Right (LR), or Right-Left (RL).',
-    analogy:
-      'Imagine balancing a see-saw with books. If one kid stacks too many books on the far right end, the see-saw tips violently. Instead of rebuilding the entire playground, you simply nudge the center pivot toward the heavier side so both sides level out smoothly.',
-    coreIdea:
-      'Rotations swap ancestor-descendant links to reduce tree height back to O(log N) without violating the Binary Search Tree invariant (left < root < right).',
-    example:
-      '// Right Rotation (RR) when Left Subtree is too heavy:\nNode* rightRotate(Node* y) {\n    Node* x = y->left;\n    Node* T2 = x->right;\n    x->right = y;\n    y->left = T2;\n    // Update heights\n    y->height = max(height(y->left), height(y->right)) + 1;\n    x->height = max(height(x->left), height(x->right)) + 1;\n    return x; // New root\n}',
-    commonMistakes: [
-      'Forgetting to update the heights of both the old and new root after swapping pointers.',
-      'Confusing Left-Right (LR) with Right-Left (RL): In LR, we first rotate the child LEFT, then the parent RIGHT.',
-      'Assuming rotations alter the in-order traversal of the tree (in-order remains strictly sorted!).'
-    ],
-    memoryShortcut: 'LL needs R rotation. RR needs L rotation. Opposite directions restore equilibrium!',
-    miniQuiz: {
-      question: 'In an AVL tree, what is the balance factor of a perfectly balanced node with equal left and right subtree heights?',
-      options: ['-1', '0', '+1', 'Any number'],
-      correctAnswerIndex: 1,
-      explanation: 'Balance Factor is defined as Height(Left) - Height(Right). When both heights are equal, the difference is 0.'
+  // Dynamic tutor data initialized to null (100% clean canvas, zero mock fallback)
+  const [tutorData, setTutorData] = useState<TutorResponsePayload | null>(null);
+
+  // Auto-fetch if initialTopic was explicitly passed from another view
+  React.useEffect(() => {
+    if (initialTopic && initialTopic.trim()) {
+      setTopic(initialTopic.trim());
+      handleFetchTutor(selectedAction, initialTopic.trim());
     }
-  });
+  }, [initialTopic]);
 
   const actionButtons: Array<{ id: TutorActionType; label: string; icon: React.ElementType }> = [
     { id: 'explain-simply', label: 'Explain Simply', icon: Lightbulb },
@@ -93,8 +81,9 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
     { id: 'give-practice-questions', label: 'Practice Questions', icon: ListChecks }
   ];
 
-  const handleFetchTutor = async (actionToUse = selectedAction) => {
-    if (!topic.trim()) return;
+  const handleFetchTutor = async (actionToUse = selectedAction, topicToOverride?: string) => {
+    const targetTopic = topicToOverride || topic;
+    if (!targetTopic || !targetTopic.trim()) return;
     setLoading(true);
     setSelectedAction(actionToUse);
     setSelectedQuizOption(null);
@@ -107,15 +96,23 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject: currentSubject?.name || 'Computer Science',
-          topic: topic.trim(),
+          subject: currentSubject?.name || currentSubject?.title || 'General Studies',
+          topic: targetTopic.trim(),
           action: actionToUse,
-          profile
+          profile: {
+            ...profile,
+            academicLevel: user?.academicLevel || profile?.academicLevel || 'Undergrad',
+            stream: user?.stream || profile?.stream || 'General'
+          }
         })
       });
       const data = await res.json();
       if (data.data) {
-        setTutorData(data.data);
+        setTutorData({
+          ...data.data,
+          topic: targetTopic.trim(),
+          action: actionToUse
+        });
       }
     } catch (err) {
       console.error('Error fetching tutor response:', err);
@@ -206,7 +203,11 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
             value={topic}
             onChange={e => setTopic(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleFetchTutor()}
-            placeholder="Enter any concept or topic (e.g. Red-Black Trees, ACID Properties, Cache Coherence)..."
+            placeholder={
+              currentSubject
+                ? `Enter any concept or topic in ${currentSubject.name || currentSubject.title}...`
+                : "Enter any concept, question, or syllabus topic to learn..."
+            }
             className="flex-1 px-4 py-2.5 rounded-xl bg-[#182138] border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-400"
           />
           <button
@@ -245,8 +246,9 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
         </div>
       </div>
 
-      {/* Rich Structured Tutor Response Layout */}
-      <div className="rounded-2xl bg-[#111728] border border-slate-800/90 overflow-hidden shadow-xl">
+      {/* Rich Structured Tutor Response Layout OR Dynamic Empty Canvas */}
+      {tutorData ? (
+        <div className="rounded-2xl bg-[#111728] border border-slate-800/90 overflow-hidden shadow-xl">
         {/* Response Top Bar */}
         <div className="px-6 py-4 border-b border-slate-800/90 bg-[#141c30] flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -456,6 +458,57 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
           </div>
         </div>
       </div>
+      ) : (
+        <div className="p-10 rounded-2xl bg-[#111728] border border-slate-800/80 text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-950/50 border border-cyan-800/40 flex items-center justify-center mx-auto text-cyan-400">
+            <Sparkles className="w-8 h-8" />
+          </div>
+
+          <div className="max-w-md mx-auto space-y-2">
+            <h2 className="text-lg font-bold text-white">
+              Socratic Study Partner Ready
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Type any concept in the box above or pick a topic from your enrolled courses to receive intuitive step-by-step explanations, analogies, and active drills.
+            </p>
+          </div>
+
+          {currentSubject && currentSubject.topics && currentSubject.topics.length > 0 ? (
+            <div className="space-y-3 pt-2 max-w-xl mx-auto">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                Quick Topics in {currentSubject.name || currentSubject.title}:
+              </span>
+              <div className="flex flex-wrap justify-center gap-2">
+                {currentSubject.topics.slice(0, 6).map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      setTopic(t.name);
+                      handleFetchTutor(selectedAction, t.name);
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#182138] hover:bg-[#202c4b] border border-slate-700/70 hover:border-cyan-500/50 text-xs text-slate-200 hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => onNavigate('subjects')}
+                className="px-4 py-2 rounded-xl bg-[#182138] hover:bg-[#202c4b] border border-slate-700 text-xs font-semibold text-cyan-300 transition-colors inline-flex items-center gap-1.5"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Go to Subject Workspace</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

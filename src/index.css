@@ -1,22 +1,148 @@
 @import "tailwindcss";
 
+@theme {
+  --color-obsidian-950: #0B0D10;
+  --color-obsidian-900: #0F1217;
+  --color-obsidian-850: #12151A;
+  --color-obsidian-800: #161A22;
+  --color-obsidian-750: #1C222B;
+  --color-obsidian-border: #2A2F37;
+  --color-obsidian-border-subtle: #1E232B;
+  --color-bronze-500: #C5A059;
+  --color-bronze-400: #D4B472;
+  --color-bronze-300: #E2C78E;
+  --color-bronze-600: #9E7D3B;
+  --color-bronze-900: #1C1811;
+  --color-teal-glow: #14B8A6;
+  --color-cyan-glow: #06B6D4;
+}
+
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #090d16;
-    color: #e2e8f0;
+    font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #0B0D10;
+    color: #E2E8F0;
     overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-serif-heading {
+    font-family: 'Newsreader', Georgia, Cambria, 'Times New Roman', serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
   }
 }
 
-/* Custom subtle starry / grid pattern for the digital study room */
-.study-room-bg {
-  background-color: #090d16;
+/* Friendly Academic Obsidian & Muted Bronze utilities */
+.bg-obsidian-950 {
+  background-color: #0B0D10;
+}
+
+.bg-obsidian-900 {
+  background-color: #0F1217;
+}
+
+.bg-obsidian-850 {
+  background-color: #12151A;
+}
+
+.bg-obsidian-800 {
+  background-color: #161A22;
+}
+
+.border-obsidian {
+  border-color: #2A2F37;
+}
+
+.border-obsidian-glow {
+  border-color: rgba(197, 160, 89, 0.45);
+}
+
+.border-bronze {
+  border-color: #C5A059;
+}
+
+.text-bronze {
+  color: #C5A059;
+}
+
+.text-bronze-light {
+  color: #E2C78E;
+}
+
+/* Obsidian Card with subtle radial inner-glow and rounded-2xl border */
+.obsidian-panel {
+  background-color: #12151A;
+  border: 1px solid #2A2F37;
+  border-radius: 1rem;
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 32px 0 rgba(197, 160, 89, 0.025),
+    0 16px 36px -12px rgba(0, 0, 0, 0.7);
+  position: relative;
+}
+
+/* Subtle bronze aura for hero and active study cards */
+.obsidian-bronze-card {
+  background: radial-gradient(ellipse at 50% 0%, rgba(197, 160, 89, 0.09) 0%, rgba(18, 21, 26, 0.98) 75%);
+  border: 1px solid rgba(197, 160, 89, 0.4);
+  border-radius: 1.25rem;
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(197, 160, 89, 0.25),
+    inset 0 0 28px 0 rgba(197, 160, 89, 0.03),
+    0 20px 48px -16px rgba(11, 13, 16, 0.85);
+}
+
+/* Core Takeaway Callout Card (#C5A059 border accent & subtle inner gradient) */
+.bronze-callout-card {
+  border: 1px solid #C5A059;
+  background: linear-gradient(135deg, rgba(197, 160, 89, 0.11) 0%, rgba(18, 21, 26, 0.98) 55%, rgba(20, 184, 166, 0.06) 100%);
+  border-radius: 1.25rem;
+  box-shadow: 
+    inset 0 1px 0 0 rgba(197, 160, 89, 0.3),
+    inset 0 0 36px 0 rgba(197, 160, 89, 0.04),
+    0 24px 50px -15px rgba(0, 0, 0, 0.8);
+}
+
+/* Tactile 3D Action Pill */
+.tactile-pill {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+.tactile-pill:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+.tactile-pill:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* 3D Tactile Indicator Box */
+.tactile-3d-box {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 
+    0 4px 12px -2px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.4);
+}
+.tactile-3d-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 24px -4px rgba(0, 0, 0, 0.7),
+    0 0 18px 0 rgba(197, 160, 89, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Ambient study background with bronze & teal depth */
+.academic-obsidian-bg {
+  background-color: #0B0D10;
   background-image: 
-    radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 85% 65%, rgba(6, 182, 212, 0.07) 0%, transparent 40%),
-    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 36px 36px;
+    radial-gradient(circle at 18% 18%, rgba(197, 160, 89, 0.05) 0%, transparent 45%),
+    radial-gradient(circle at 82% 70%, rgba(20, 184, 166, 0.04) 0%, transparent 45%),
+    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 32px 32px;
 }
 
 /* Notebook paper styling */
@@ -29,24 +155,24 @@
 }
 
 .notebook-paper-dark {
-  background-color: #121829;
+  background-color: #12151A;
   background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 100% 28px;
   line-height: 28px;
 }
 
-/* Custom scrollbar for dark study room */
+/* Custom scrollbar for obsidian study room */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: #0B0D10;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.35);
+  background: #2A2F37;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
+  background: #C5A059;
 }

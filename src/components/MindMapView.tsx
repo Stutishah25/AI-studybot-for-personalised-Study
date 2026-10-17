@@ -23,24 +23,27 @@ interface MindMapViewProps {
 }
 
 export const MindMapView: React.FC<MindMapViewProps> = ({
-  initialTopic = 'Operating System Architecture',
+  initialTopic = '',
   onNavigate
 }) => {
   const { currentMindMap, setCurrentMindMap, saveMindMap, currentSubject } = useStudy();
 
-  const [topicInput, setTopicInput] = useState(initialTopic);
+  const [topicInput, setTopicInput] = useState(initialTopic || currentSubject?.topics?.[0]?.name || '');
   const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState<MindMapNode | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
 
-  const templateTopics = [
-    'Operating System Architecture',
-    'Binary Search Trees & AVL',
-    'Relational Database Indexing',
-    'OSI 7-Layer Protocol Model',
-    'Dynamic Programming Patterns'
-  ];
+  // Dynamic template topics derived from user's current course or universal cross-disciplinary pillars
+  const templateTopics = (currentSubject?.topics && currentSubject.topics.length > 0)
+    ? currentSubject.topics.slice(0, 5).map(t => t.name)
+    : [
+        'Cellular Metabolism & Energy',
+        'Macroeconomic Equilibrium',
+        'Constitutional Due Process',
+        'Newtonian Mechanics & Force Invariants',
+        'Thermodynamic Systems & Entropy'
+      ];
 
   const toggleCollapse = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -48,7 +51,7 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
   };
 
   const handleGenerateMindMap = async (topicToUse = topicInput) => {
-    if (!topicToUse.trim()) return;
+    if (!topicToUse || !topicToUse.trim()) return;
     setLoading(true);
     setSelectedNode(null);
 
@@ -57,7 +60,7 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject: currentSubject?.name || 'Computer Science',
+          subject: currentSubject?.name || currentSubject?.title || 'General Studies',
           topic: topicToUse.trim()
         })
       });

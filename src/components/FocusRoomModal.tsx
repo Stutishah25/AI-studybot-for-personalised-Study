@@ -25,7 +25,11 @@ export const FocusRoomModal: React.FC<FocusRoomModalProps> = ({ isOpen, onClose 
   const [selectedDuration, setSelectedDuration] = useState<number>(25); // minutes
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60); // seconds
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [sessionGoal, setSessionGoal] = useState<string>('Master AVL Tree Rotations and complete recall check');
+  const [sessionGoal, setSessionGoal] = useState<string>(() =>
+    currentSubject?.topics?.[0]?.name
+      ? `Review ${currentSubject.topics[0].name} and complete recall check`
+      : 'Complete focused study session and recall check'
+  );
   const [completed, setCompleted] = useState<boolean>(false);
   const [ambientSound, setAmbientSound] = useState<boolean>(false);
   const [customMinutes, setCustomMinutes] = useState<string>('30');

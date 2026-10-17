@@ -129,28 +129,34 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onNavigate }) => {
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Layers className="w-4 h-4 text-violet-400" /> Subject Coverage & Progress
             </h3>
-            <span className="text-xs font-mono text-slate-400">5 Registered Subjects</span>
+            <span className="text-xs font-mono text-slate-400">{subjects.length} Registered Subjects</span>
           </div>
 
           <div className="space-y-4 pt-2">
-            {subjects.map(s => (
-              <div key={s.id} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-white">{s.name}</span>
-                  <span className="font-mono text-cyan-300 font-bold">{s.progress}%</span>
+            {subjects.length > 0 ? (
+              subjects.map(s => (
+                <div key={s.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-white">{s.name}</span>
+                    <span className="font-mono text-cyan-300 font-bold">{s.progress}%</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-violet-500 to-cyan-400 rounded-full"
+                      style={{ width: `${s.progress}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-violet-500 to-cyan-400 rounded-full"
-                    style={{ width: `${s.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-slate-400 py-3">No subjects enrolled yet. Add subjects to view coverage metrics.</p>
+            )}
           </div>
 
           <p className="text-xs text-slate-400 leading-relaxed">
-            Data Structures & Algorithms has the highest velocity, while Computer Networks has the upcoming exam in 8 days.
+            {subjects.length > 0
+              ? `${subjects[0].name} is actively tracked in your current curriculum.`
+              : 'Add your subjects to generate personalized velocity and readiness analytics.'}
           </p>
         </div>
       </div>

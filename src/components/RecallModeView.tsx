@@ -23,39 +23,33 @@ interface RecallModeViewProps {
 }
 
 export const RecallModeView: React.FC<RecallModeViewProps> = ({
-  initialTopic = 'AVL Tree Rotations',
+  initialTopic = '',
   onNavigate
 }) => {
   const { currentSubject, updateTopicStatus } = useStudy();
 
-  const [topicInput, setTopicInput] = useState(initialTopic);
+  const [topicInput, setTopicInput] = useState(initialTopic || currentSubject?.topics?.[0]?.name || '');
   const [questionType, setQuestionType] = useState<string>('short-answer');
   const [loadingQuestion, setLoadingQuestion] = useState(false);
   const [loadingEvaluation, setLoadingEvaluation] = useState(false);
 
-  const [currentQuestion, setCurrentQuestion] = useState<RecallQuestionPayload>({
-    id: 'rq-1',
-    topic: 'AVL Tree Rotations',
-    questionType: 'short-answer',
-    prompt: 'When a new node is inserted into the right subtree of a right child causing the AVL tree to become unbalanced (balance factor = -2), which single rotation is required to rebalance it?',
-    hints: [
-      'Think about the direct mirror of Left-Left (LL) insertion.',
-      'The tree is heavy on the Right-Right side, so we rotate towards the left.'
-    ],
-    idealAnswer: 'A single Left Rotation (RR rotation) about the unbalanced node.',
-    keyPointsExpected: [
-      'Left rotation',
-      'RR (Right-Right) imbalance case',
-      'Restores balance factor back to -1, 0, or +1'
-    ]
-  });
+  // Dynamic question state initialized to null (100% clean canvas, zero mock fallback)
+  const [currentQuestion, setCurrentQuestion] = useState<RecallQuestionPayload | null>(null);
+
+  // Auto-fetch if initialTopic was explicitly passed
+  React.useEffect(() => {
+    if (initialTopic && initialTopic.trim()) {
+      setTopicInput(initialTopic.trim());
+      handleGenerateQuestion(initialTopic.trim());
+    }
+  }, [initialTopic]);
 
   const [studentAnswer, setStudentAnswer] = useState('');
   const [hintsRevealed, setHintsRevealed] = useState<number>(0);
   const [evaluation, setEvaluation] = useState<EvaluationResponsePayload | null>(null);
 
   const handleGenerateQuestion = async (topicToUse = topicInput) => {
-    if (!topicToUse.trim()) return;
+    if (!topicToUse || !topicToUse.trim()) return;
     setLoadingQuestion(true);
     setEvaluation(null);
     setStudentAnswer('');
@@ -66,7 +60,7 @@ export const RecallModeView: React.FC<RecallModeViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject: currentSubject?.name || 'Computer Science',
+          subject: currentSubject?.name || currentSubject?.title || 'General Studies',
           topic: topicToUse.trim(),
           questionType
         })
@@ -154,7 +148,11 @@ export const RecallModeView: React.FC<RecallModeViewProps> = ({
           type="text"
           value={topicInput}
           onChange={e => setTopicInput(e.target.value)}
-          placeholder="Topic to test (e.g. AVL Rotations, TCP Handshake, B-Trees)..."
+          placeholder={
+            currentSubject
+              ? `Topic to test in ${currentSubject.name || currentSubject.title} (e.g. ${currentSubject.topics?.[0]?.name || 'Core Principles'})...`
+              : "Topic to test (e.g. Cell Transport, Elasticity, Constitutional Rights)..."
+          }
           className="flex-1 px-4 py-2.5 rounded-xl bg-[#182138] border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-400"
         />
         <button
@@ -168,8 +166,9 @@ export const RecallModeView: React.FC<RecallModeViewProps> = ({
         </button>
       </div>
 
-      {/* Active Question Arena */}
-      <div className="p-6 md:p-8 rounded-2xl bg-[#111728] border border-slate-800/90 space-y-6 shadow-2xl">
+      {/* Active Question Arena OR Clean Empty State */}
+      {currentQuestion ? (
+        <div className="p-6 md:p-8 rounded-2xl bg-[#111728] border border-slate-800/90 space-y-6 shadow-2xl">
         {/* Question Header */}
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
           <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">
@@ -368,6 +367,57 @@ export const RecallModeView: React.FC<RecallModeViewProps> = ({
           </div>
         )}
       </div>
+      ) : (
+        <div className="p-10 rounded-2xl bg-[#111728] border border-slate-800/80 text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-950/50 border border-cyan-800/40 flex items-center justify-center mx-auto text-cyan-400">
+            <Target className="w-8 h-8" />
+          </div>
+
+          <div className="max-w-md mx-auto space-y-2">
+            <h2 className="text-lg font-bold text-white">
+              Active Recall Engine Ready
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Active recall is the fastest way to build lasting retention. Enter any topic above or pick from your course syllabus to generate an instant challenge.
+            </p>
+          </div>
+
+          {currentSubject && currentSubject.topics && currentSubject.topics.length > 0 ? (
+            <div className="space-y-3 pt-2 max-w-xl mx-auto">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                Practice Topics in {currentSubject.name || currentSubject.title}:
+              </span>
+              <div className="flex flex-wrap justify-center gap-2">
+                {currentSubject.topics.slice(0, 6).map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      setTopicInput(t.name);
+                      handleGenerateQuestion(t.name);
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#182138] hover:bg-[#202c4b] border border-slate-700/70 hover:border-cyan-500/50 text-xs text-slate-200 hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => onNavigate('subjects')}
+                className="px-4 py-2 rounded-xl bg-[#182138] hover:bg-[#202c4b] border border-slate-700 text-xs font-semibold text-cyan-300 transition-colors inline-flex items-center gap-1.5"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Go to Subject Workspace</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

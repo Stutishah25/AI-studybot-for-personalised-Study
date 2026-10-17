@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useStudy } from '../context/StudyContext';
 import { useAuth } from '../context/AuthContext';
 import { NovaLogo } from './NovaLogo';
+import { StudyBuddyMascot } from './StudyBuddyMascot';
 import { 
   Search, 
   Flame, 
@@ -12,7 +13,8 @@ import {
   LogOut,
   User as UserIcon,
   Compass,
-  Sparkles
+  Sparkles,
+  Plus
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -34,13 +36,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 h-16 border-b border-slate-800/80 bg-[#090d16]/90 backdrop-blur-md px-4 lg:px-6 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 h-16 border-b border-[#2A2F37] bg-[#0B0D10]/95 backdrop-blur-md px-4 lg:px-6 flex items-center justify-between gap-4">
       {/* Left: Mobile Menu & Logo */}
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#13192a] lg:hidden transition-colors"
+          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#12151A] lg:hidden transition-colors border border-transparent hover:border-[#2A2F37]"
           title="Toggle Navigation"
         >
           <Menu className="w-5 h-5" />
@@ -56,38 +58,42 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={onOpenCommandBar}
-          className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-[#111728] border border-slate-800/90 hover:border-cyan-500/50 hover:bg-[#141b2f] transition-all group text-left"
+          className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-[#12151A] border border-[#2A2F37] hover:border-[#C5A059]/60 hover:bg-[#171B22] transition-all group text-left shadow-inner"
         >
           <div className="flex items-center gap-2.5 text-slate-400 group-hover:text-slate-200">
-            <Search className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+            <Search className="w-4 h-4 text-[#C5A059] group-hover:scale-110 transition-transform" />
             <span className="text-xs sm:text-sm font-medium truncate">
               Ask NOVA to teach, summarize, test or plan...
             </span>
           </div>
           <div className="hidden sm:flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 font-mono border border-slate-700">
+            <kbd className="px-1.5 py-0.5 rounded bg-[#1C222B] text-[10px] text-[#C5A059] font-mono border border-[#2A2F37]">
               ⌘K
             </kbd>
           </div>
         </button>
       </div>
 
-      {/* Right: Subject Switcher, Streak, Focus Mode & Profile/Auth */}
+      {/* Right: Subject Switcher, Streak, Focus Mode & Study Buddy */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Subject Quick Selector & Add Subject */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1.5">
           <div className="relative">
             <select
               value={currentSubjectId}
               onChange={e => setCurrentSubjectId(e.target.value)}
               aria-label="Select active study subject"
-              className="appearance-none bg-[#13192a] border border-slate-800 rounded-xl px-3 py-1.5 pr-8 text-xs font-medium text-slate-200 hover:border-slate-700 focus:outline-none focus:border-cyan-400 cursor-pointer"
+              className="appearance-none bg-[#12151A] border border-[#2A2F37] rounded-xl px-3 py-1.5 pr-8 text-xs font-medium text-slate-200 hover:border-[#C5A059]/40 focus:outline-none focus:border-[#C5A059] cursor-pointer"
             >
-              {subjects.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
+              {subjects.length > 0 ? (
+                subjects.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name || s.title}
+                  </option>
+                ))
+              ) : (
+                <option value="">No Subjects</option>
+              )}
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
           </div>
@@ -96,31 +102,34 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button"
             onClick={() => setIsSubjectModalOpen(true)}
             title="Manage Subjects & Syllabus"
-            className="p-1.5 rounded-lg bg-[#13192a] border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-300 transition-colors"
+            className="p-1.5 rounded-xl bg-[#12151A] border border-[#2A2F37] hover:border-[#C5A059]/50 text-slate-400 hover:text-[#C5A059] transition-colors"
           >
-            <BookOpen className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Study Momentum Streak Badge */}
+        {/* Study Momentum Streak Badge (Muted Bronze Accent) */}
         <div 
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs font-semibold select-none"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#1C1811] border border-[#C5A059]/40 text-[#E2C78E] text-xs font-semibold select-none shadow-sm"
           title={`${streak} Days Consecutive Study Streak!`}
         >
-          <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 animate-pulse" />
-          <span>{streak}d</span>
+          <Flame className="w-3.5 h-3.5 fill-[#C5A059] text-[#C5A059]" />
+          <span className="font-mono">{streak}d</span>
         </div>
 
-        {/* Focus Mode Button */}
+        {/* Focus Mode Button (Tactile Obsidian & Bronze) */}
         <button
           type="button"
           onClick={onOpenFocusMode}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-violet-600/30 to-cyan-500/30 hover:from-violet-600/40 hover:to-cyan-500/40 border border-cyan-500/30 text-cyan-200 text-xs font-medium transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#12151A] hover:bg-[#1A1F26] border border-[#C5A059]/40 hover:border-[#C5A059] text-[#E2C78E] hover:text-white text-xs font-medium transition-all shadow-sm"
           title="Enter Distraction-Free Study Sanctuary"
         >
-          <Timer className="w-3.5 h-3.5 text-cyan-400" />
+          <Timer className="w-3.5 h-3.5 text-[#C5A059]" />
           <span className="hidden sm:inline">Focus Room</span>
         </button>
+
+        {/* Friendly Mascot Badge */}
+        <StudyBuddyMascot size="sm" showStatus={false} />
 
         {/* Auth / Profile Area */}
         {!isAuthenticated ? (
