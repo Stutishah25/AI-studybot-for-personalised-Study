@@ -4,12 +4,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { AcademicLevel, AcademicStream } from './prompts.js';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const baseDir = (typeof process.cwd === 'function' && process.cwd()) || (typeof __dirname === 'string' && __dirname) || '.';
+const DATA_DIR = path.resolve(baseDir, 'data') || path.join(__dirname, '../data') || path.join(baseDir, 'data') || './data';
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nova-jwt-secret-session-key-production-change';
+const JWT_SECRET = String(process.env.JWT_SECRET || 'nova-jwt-secret-session-key-production-change').trim();
 
 /**
  * User Schema:
@@ -82,14 +83,16 @@ export interface UserProfileRecord {
 
 // Low-overhead file-backed store with guaranteed multi-tenant isolation and 100% clean canvas
 class DatabaseStore {
-  private usersFile = path.join(DATA_DIR, 'users.json');
+  private usersFile = path.resolve(DATA_DIR, 'users.json') || path.join(DATA_DIR, 'users.json');
 
-  public userStorePath(userId: string, collection: string): string {
-    const userDir = path.join(DATA_DIR, 'users_data', userId);
+  public userStorePath(userId: string = 'default', collection: string = 'data'): string {
+    const safeUserId = String(userId || 'default').trim() || 'default';
+    const safeCollection = String(collection || 'data').trim() || 'data';
+    const userDir = path.resolve(DATA_DIR, 'users_data', safeUserId) || path.join(DATA_DIR, 'users_data', safeUserId);
     if (!fs.existsSync(userDir)) {
       fs.mkdirSync(userDir, { recursive: true });
     }
-    return path.join(userDir, `${collection}.json`);
+    return path.resolve(userDir, `${safeCollection}.json`) || path.join(userDir, `${safeCollection}.json`);
   }
 
   constructor() {

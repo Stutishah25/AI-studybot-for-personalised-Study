@@ -18,11 +18,33 @@ import {
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Safe filename and directory path resolution with string fallbacks
+const safeFileUrl = (typeof import.meta.url === 'string' && import.meta.url) ? import.meta.url : '';
+let resolvedFilename = '';
+try {
+  if (safeFileUrl) {
+    resolvedFilename = fileURLToPath(safeFileUrl);
+  }
+} catch {
+  resolvedFilename = '';
+}
+const __filename = resolvedFilename || (process.argv && process.argv[1] ? String(process.argv[1]) : '');
+const __dirname = __filename ? path.dirname(__filename) : (typeof process.cwd === 'function' ? process.cwd() : '.');
+
+// Ensure process.env.PORT defaults to 10000 if undefined
+if (!process.env.PORT) {
+  process.env.PORT = '10000';
+}
+const argPortIndex = process.argv ? process.argv.indexOf('--port') : -1;
+const cliPort = argPortIndex !== -1 && process.argv[argPortIndex + 1] ? process.argv[argPortIndex + 1] : undefined;
+const PORT = parseInt(cliPort || process.env.PORT || '10000', 10) || 10000;
+
+// Safe base, data storage, and client distribution paths with string fallbacks
+const baseDir = (typeof __dirname === 'string' && __dirname) || (typeof process.cwd === 'function' && process.cwd()) || '.';
+export const STORAGE_DATA_DIR = path.resolve(baseDir, 'data') || path.join(__dirname, '../data') || './data';
+export const STATIC_DIST_DIR = path.resolve(baseDir, 'dist') || path.join(__dirname, '../dist') || './dist';
 
 const app = express();
-const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -32,15 +54,16 @@ app.use('/api/auth', authRouter);
 app.use('/api/user', dataRouter);
 app.use('/api/v2/subjects', subjectsV2Router);
 
-// Lazy initialize GoogleGenAI client
+// Lazy initialize GoogleGenAI client with safe environment variable reading
 let aiClient: GoogleGenAI | null = null;
 function getAIClient(): GoogleGenAI | null {
-  if (!process.env.GEMINI_API_KEY) {
+  const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+  if (!apiKey) {
     return null;
   }
   if (!aiClient) {
     aiClient = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: apiKey,
       httpOptions: {
         headers: {
           'User-Agent': 'aistudio-build'
@@ -53,9 +76,11 @@ function getAIClient(): GoogleGenAI | null {
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {
+  const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
   res.json({
     status: 'ok',
-    aiConfigured: Boolean(process.env.GEMINI_API_KEY),
+    aiConfigured: Boolean(apiKey),
+    port: PORT,
     timestamp: new Date().toISOString()
   });
 });
@@ -982,10 +1007,12 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    // Safe string fallbacks for client distribution directory and entry point
+    const distPath = STATIC_DIST_DIR || path.join(__dirname, '../dist') || path.resolve(baseDir, 'dist') || './dist';
     app.use(express.static(distPath));
     app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.resolve(distPath, 'index.html') || path.join(distPath, 'index.html') || './dist/index.html';
+      res.sendFile(indexPath);
     });
   }
 
